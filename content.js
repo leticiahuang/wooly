@@ -1,47 +1,6 @@
 // Content script that runs on shopping websites
 console.log('Fabric Rating Extension loaded');
 
-// Wooly mascot as base64 SVG (sheep icon)
-const WOOLY_MASCOT_SVG = `
-<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-  <!-- Background -->
-  <rect width="100" height="100" fill="#6BA3BE"/>
-  
-  <!-- Body (fluffy cloud shape) -->
-  <ellipse cx="50" cy="72" rx="28" ry="12" fill="white"/>
-  <ellipse cx="38" cy="70" rx="10" ry="8" fill="white"/>
-  <ellipse cx="62" cy="70" rx="10" ry="8" fill="white"/>
-  
-  <!-- Head -->
-  <circle cx="50" cy="45" r="22" fill="#FDF5F5"/>
-  
-  <!-- Fluffy top -->
-  <circle cx="38" cy="30" r="10" fill="white"/>
-  <circle cx="50" cy="26" r="11" fill="white"/>
-  <circle cx="62" cy="30" r="10" fill="white"/>
-  <circle cx="44" cy="34" r="8" fill="white"/>
-  <circle cx="56" cy="34" r="8" fill="white"/>
-  
-  <!-- Ears -->
-  <ellipse cx="28" cy="40" rx="8" ry="5" fill="#FFCDD2" transform="rotate(-20 28 40)"/>
-  <ellipse cx="72" cy="40" rx="8" ry="5" fill="#FFCDD2" transform="rotate(20 72 40)"/>
-  
-  <!-- Eyes -->
-  <circle cx="42" cy="44" r="4" fill="#333"/>
-  <circle cx="58" cy="44" r="4" fill="#333"/>
-  <circle cx="43" cy="43" r="1.5" fill="white"/>
-  <circle cx="59" cy="43" r="1.5" fill="white"/>
-  
-  <!-- Blush -->
-  <ellipse cx="34" cy="52" rx="5" ry="3" fill="#FFCDD2" opacity="0.6"/>
-  <ellipse cx="66" cy="52" rx="5" ry="3" fill="#FFCDD2" opacity="0.6"/>
-  
-  <!-- Nose/Mouth -->
-  <ellipse cx="50" cy="52" rx="3" ry="2" fill="#FFAB91"/>
-  <path d="M 46 56 Q 50 60 54 56" stroke="#666" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-</svg>
-`;
-
 // Create and add the floating mascot icon
 function createMascotIcon() {
   // Don't add if already exists
@@ -53,9 +12,9 @@ function createMascotIcon() {
   const icon = document.createElement('div');
   icon.className = 'wooly-mascot-icon';
   
-  // Create image from SVG
+  // Create image from mascot file
   const img = document.createElement('img');
-  img.src = 'data:image/svg+xml;base64,' + btoa(WOOLY_MASCOT_SVG);
+  img.src = chrome.runtime.getURL('icons/mascot.svg');
   img.alt = 'Wooly';
   icon.appendChild(img);
   
