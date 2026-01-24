@@ -1,3 +1,17 @@
+/* Global Font Reset for Extension */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap');
+
+.wooly-mascot-container,
+.fabric-rating-container,
+.fabric-hover-popup,
+.wooly-root {
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* -------------------------------------------------------------------------
+   1. SMALL RATING BUTTON (The pill on the product image)
+   ------------------------------------------------------------------------- */
 /* Rating Button - Small Rectangular Label */
 .fabric-rating-button {
   position: absolute !important;
@@ -6,6 +20,7 @@
   z-index: 1000 !important;
   padding: 4px 10px;
   border-radius: 4px;
+  /* overridden below */
   font-size: 11px;
   font-weight: 600;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -25,9 +40,9 @@
   letter-spacing: 0.2px;
 
   border: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.10),
-    0 8px 20px rgba(0, 0, 0, 0.06);
+  /* restored border */
+  background: white;
+  /* default fallback */
 
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
@@ -48,6 +63,8 @@
   /* rich soft red */
   color: #7F1D1D;
   /* deep red text */
+  border-bottom: none;
+  /* remove new border */
 }
 
 /* Medium/Yellow rating (40-65) - Moderate */
@@ -56,11 +73,13 @@
   /* muted gold */
   color: #7C4A00;
   /* premium amber-brown text */
+  border-bottom: none;
 }
 
 .fabric-rating-button.fabric-rating-lightGreen {
   background-color: #BBF7D0;
   color: #166534;
+  border-bottom: none;
 }
 
 .fabric-rating-button.fabric-rating-darkGreen {
@@ -68,308 +87,274 @@
   color: #052E16;
   position: relative;
   overflow: visible;
+  border-bottom: none;
 }
 
-/* Gold star glitter - sporadic random flashes */
-@keyframes sparkA {
-
-  0%,
-  8%,
-  15%,
-  100% {
-    opacity: 0;
-  }
-
-  5%,
-  12% {
-    opacity: 1;
-  }
-}
-
-@keyframes sparkB {
-
-  0%,
-  25%,
-  35%,
-  100% {
-    opacity: 0;
-  }
-
-  30% {
-    opacity: 1;
-  }
-}
-
-@keyframes sparkC {
-
-  0%,
-  45%,
-  55%,
-  100% {
-    opacity: 0;
-  }
-
-  50% {
-    opacity: 1;
-  }
-}
-
-@keyframes sparkD {
-
-  0%,
-  65%,
-  75%,
-  100% {
-    opacity: 0;
-  }
-
-  70% {
-    opacity: 1;
-  }
-}
-
-@keyframes sparkE {
-
-  0%,
-  85%,
-  95%,
-  100% {
-    opacity: 0;
-  }
-
-  90% {
-    opacity: 1;
-  }
-}
-
-@keyframes sparkF {
-
-  0%,
-  18%,
-  28%,
-  100% {
-    opacity: 0;
-  }
-
-  23% {
-    opacity: 1;
-  }
-}
-
-@keyframes sparkG {
-
-  0%,
-  38%,
-  48%,
-  100% {
-    opacity: 0;
-  }
-
-  43% {
-    opacity: 1;
-  }
-}
-
-@keyframes sparkH {
-
-  0%,
-  58%,
-  68%,
-  100% {
-    opacity: 0;
-  }
-
-  63% {
-    opacity: 1;
-  }
-}
-
-/* Star on top-right edge */
-.fabric-rating-button.fabric-rating-darkGreen::before {
-  content: '✦';
-  position: absolute;
-  top: -6px;
-  right: -4px;
-  font-size: 14px;
-  color: #FFD700;
-  text-shadow: 0 0 6px rgba(255, 215, 0, 0.8), 0 0 12px rgba(255, 215, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.3);
-  filter: drop-shadow(0 0 2px rgba(255, 215, 0, 0.6));
-  pointer-events: none;
-}
-
-/* Star on bottom-left edge */
+/* Star decorations - ONLY for Excellent (darkGreen) */
+/* Keeping the stars as user seemed to like them generally, but restoring potential context */
+.fabric-rating-button.fabric-rating-darkGreen::before,
 .fabric-rating-button.fabric-rating-darkGreen::after {
   content: '✦';
   position: absolute;
+  color: #FFD700;
+  font-size: 14px;
+  animation: spin-twinkle 3s ease-in-out infinite;
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+}
+
+/* Top Right Star */
+.fabric-rating-button.fabric-rating-darkGreen::before {
+  top: -6px;
+  right: -4px;
+  /* adjust back to original-ish */
+}
+
+/* Bottom Left Star */
+.fabric-rating-button.fabric-rating-darkGreen::after {
   bottom: -5px;
   left: -3px;
-  font-size: 12px;
-  color: #FFD700;
-  text-shadow: 0 0 6px rgba(255, 215, 0, 0.8), 0 0 12px rgba(255, 215, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.3);
-  filter: drop-shadow(0 0 2px rgba(255, 215, 0, 0.6));
-  pointer-events: none;
+  /* adjust back to original-ish */
+  animation-delay: 1.5s;
 }
 
-
-
-
-
-
-
-/* Pulse animations */
-@keyframes pulse-green {
-
-  0%,
-  100% {
-    box-shadow: 0 0 10px rgba(76, 175, 80, 0.7), inset 0 1px 3px rgba(255, 255, 255, 0.5);
-  }
-
-  50% {
-    box-shadow: 0 0 20px rgba(76, 175, 80, 0.9), inset 0 1px 3px rgba(255, 255, 255, 0.5);
-  }
+/* Show on hover */
+.fabric-rating-button.fabric-rating-darkGreen:hover::before,
+.fabric-rating-button.fabric-rating-darkGreen:hover::after {
+  opacity: 1;
 }
 
-@keyframes pulse-yellow {
-
-  0%,
-  100% {
-    box-shadow: 0 0 10px rgba(255, 193, 7, 0.7), inset 0 1px 3px rgba(255, 255, 255, 0.5);
-  }
-
-  50% {
-    box-shadow: 0 0 20px rgba(255, 193, 7, 0.9), inset 0 1px 3px rgba(255, 255, 255, 0.5);
-  }
-}
-
-@keyframes pulse-red {
-
-  0%,
-  100% {
-    box-shadow: 0 0 10px rgba(244, 67, 54, 0.7), inset 0 1px 3px rgba(255, 255, 255, 0.5);
-  }
-
-  50% {
-    box-shadow: 0 0 20px rgba(244, 67, 54, 0.9), inset 0 1px 3px rgba(255, 255, 255, 0.5);
-  }
-}
-
-@keyframes pulse-medium {
-
-  0%,
-  100% {
-    box-shadow: 0 0 10px rgba(255, 152, 0, 0.7), inset 0 1px 3px rgba(255, 255, 255, 0.5);
-  }
-
-  50% {
-    box-shadow: 0 0 20px rgba(255, 152, 0, 0.9), inset 0 1px 3px rgba(255, 255, 255, 0.5);
-  }
-}
-
-@keyframes pulse-lightGreen {
-
-  0%,
-  100% {
-    box-shadow: 0 0 10px rgba(139, 195, 74, 0.7), inset 0 1px 3px rgba(255, 255, 255, 0.5);
-  }
-
-  50% {
-    box-shadow: 0 0 20px rgba(139, 195, 74, 0.9), inset 0 1px 3px rgba(255, 255, 255, 0.5);
-  }
-}
-
-@keyframes pulse-darkGreen {
-
-  0%,
-  100% {
-    box-shadow: 0 0 10px rgba(46, 125, 50, 0.7), inset 0 1px 3px rgba(255, 255, 255, 0.5);
-  }
-
-  50% {
-    box-shadow: 0 0 20px rgba(46, 125, 50, 0.9), inset 0 1px 3px rgba(255, 255, 255, 0.5);
-  }
-}
-
-/* Ensure proper stacking */
-.fabric-rating-container,
-.fabric-rating-indicator {
-  pointer-events: auto !important;
-}
-
-/* Make sure parent containers don't interfere */
-.fabric-rating-container * {
-  box-sizing: border-box !important;
-}
-
-/* Hover Rectangle - Modern White Design */
-.fabric-hover-rectangle {
-  position: absolute;
-  left: calc(100% + 12px);
-  top: 50%;
-  transform: translateY(-50%) translateX(-10px);
-  min-width: 110px;
-  padding: 12px 16px;
-  border-radius: 16px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+/* -------------------------------------------------------------------------
+   2. HOVER POPUP (The big card)
+   ------------------------------------------------------------------------- */
+.fabric-hover-popup {
+  position: fixed !important;
+  z-index: 2147483647 !important;
+  /* Max z-index */
+  width: 320px;
+  min-height: 200px;
+  background: #F0FDF4;
+  /* Mint cream background */
+  border-radius: 24px;
+  box-shadow:
+    0 20px 60px -10px rgba(20, 83, 45, 0.15),
+    0 10px 20px -5px rgba(20, 83, 45, 0.1);
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.25s ease, transform 0.25s ease;
-  background: rgba(255, 255, 255, 0.98);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08);
-  backdrop-filter: blur(12px);
-  z-index: 10002;
+  transform: translateY(10px) scale(0.95);
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  overflow: visible;
+  /* Allow sheep to pop out */
+
+  /* Wavy background pattern using gradient */
+  background-image:
+    radial-gradient(circle at 10% 20%, rgba(187, 247, 208, 0.4) 0%, transparent 20%),
+    radial-gradient(circle at 90% 80%, rgba(187, 247, 208, 0.4) 0%, transparent 20%),
+    linear-gradient(180deg, #F0FDF4 0%, #FFFFFF 100%);
 }
 
-.fabric-rating-container:hover .fabric-hover-rectangle {
+.fabric-hover-popup.visible {
   opacity: 1;
-  transform: translateY(-50%) translateX(0);
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
 }
 
-/* Score text color based on rating */
-.fabric-hover-rectangle.fabric-hover-green .hover-rect-score {
-  color: #4CAF50;
+/* --- Header Section (Score + Mascot) --- */
+.sheep-popup-header {
+  position: relative;
+  height: 140px;
+  background: #DCFCE7;
+  /* Matcha Green */
+  border-radius: 24px 24px 50% 50% / 24px 24px 40px 40px;
+  /* Wavy bottom */
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  overflow: visible;
 }
 
-.fabric-hover-rectangle.fabric-hover-yellow .hover-rect-score {
-  color: #F9A825;
+/* Wavy SVG Texture Overlay for Header */
+.sheep-popup-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBviewQm94PSIwIDAgMTAwIDEwMCIgbInBpY2l0eT0iMC4wNSI+PHBhdGggZD0iTTAgMGgxMDB2MTAwSDB6IiBmaWxsPSIjZmZmIi8+PC9zdmc+');
+  /* Subtle noise */
+  opacity: 0.3;
+  pointer-events: none;
+  border-radius: inherit;
 }
 
-.fabric-hover-rectangle.fabric-hover-red .hover-rect-score {
-  color: #F44336;
+/* Kiwi/Sheep Mascot Container */
+.sheep-mascot-float {
+  width: 100px;
+  height: 100px;
+  margin-right: 16px;
+  position: relative;
+  z-index: 10;
+  filter: drop-shadow(0 8px 16px rgba(20, 83, 45, 0.15));
+  animation: gentle-float 3s ease-in-out infinite;
 }
 
-.fabric-hover-rectangle.fabric-hover-medium .hover-rect-score {
-  color: #F57C00;
+.sheep-mascot-float img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
-.fabric-hover-rectangle.fabric-hover-lightGreen .hover-rect-score {
-  color: #7CB342;
+/* Score Display */
+.sheep-score-display {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
-.fabric-hover-rectangle.fabric-hover-darkGreen .hover-rect-score {
-  color: #2E7D32;
-}
-
-/* Rectangle content */
-.hover-rect-score {
+.sheep-title {
   font-size: 24px;
-  font-weight: 700;
-  line-height: 1;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-weight: 800;
+  color: #14532D;
+  margin-bottom: 4px;
 }
 
-.hover-rect-label {
-  font-size: 9px;
+.sheep-subtitle {
+  font-size: 13px;
   font-weight: 600;
-  color: #666;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  margin-top: 4px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #166534;
+  opacity: 0.9;
 }
 
+/* --- Content Section (Fabric Data) --- */
+.sheep-content-body {
+  padding: 24px;
+  background: transparent;
+}
+
+.sheep-question-text {
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: #15803D;
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+
+/* Input/Data Box */
+.sheep-data-box {
+  background: white;
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.05),
+    0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  border: 1px solid #DCFCE7;
+}
+
+.sheep-fabric-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 4px;
+  border-bottom: 1px dashed #E5E7EB;
+}
+
+.sheep-fabric-row:last-child {
+  border-bottom: none;
+}
+
+.sheep-fabric-name {
+  color: #374151;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.sheep-fabric-percent {
+  color: #111827;
+  font-weight: 800;
+  font-size: 14px;
+}
+
+/* Save/Action Button */
+.sheep-action-btn {
+  margin-top: 16px;
+  width: 100%;
+  background: #65A30D;
+  /* Kiwi Green */
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+  box-shadow: 0 4px 12px rgba(101, 163, 13, 0.3);
+}
+
+.sheep-action-btn:hover {
+  background: #4D7C0F;
+}
+
+/* Toggle Switch (Top Right) */
+.sheep-toggle-container {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.4);
+  padding: 4px 8px;
+  border-radius: 20px;
+  backdrop-filter: blur(4px);
+}
+
+.sheep-toggle-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #14532D;
+}
+
+/* -------------------------------------------------------------------------
+   3. ANIMATIONS
+   ------------------------------------------------------------------------- */
+@keyframes spin-twinkle {
+  0% {
+    transform: rotate(0deg) scale(0.8);
+    opacity: 0.5;
+  }
+
+  50% {
+    transform: rotate(180deg) scale(1.2);
+    opacity: 1;
+  }
+
+  100% {
+    transform: rotate(360deg) scale(0.8);
+    opacity: 0.5;
+  }
+}
+
+@keyframes gentle-float {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+/* -------------------------------------------------------------------------
+   4. FLOATING MASCOT (Bottom Right Widget)
+   ------------------------------------------------------------------------- */
 /* Wooly Mascot Floating Icon */
 .wooly-mascot-container {
   position: fixed !important;
@@ -452,4 +437,15 @@
 .wooly-mascot-container:hover .wooly-mascot-tooltip {
   opacity: 1;
   transform: translateY(0);
+}
+
+/* NEW: Big Score */
+.sheep-big-score {
+  font-size: 42px;
+  font-weight: 800;
+  color: #14532D;
+  line-height: 1;
+  letter-spacing: -2px;
+  text-shadow: 2px 2px 0px rgba(187, 247, 208, 0.5);
+  margin-top: -4px;
 }

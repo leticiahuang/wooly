@@ -99,16 +99,163 @@ function getLabelFromRating(rating) {
   return labels[rating] || 'Unknown';
 }
 
-// Create rating button with text label
+// Get dynamic slogan from rating
+function getSloganFromRating(rating) {
+  const slogans = {
+    red: "Don't get fleeced! 🙅",
+    medium: "This fabric is a bit... <br> fuzzy 🤔",
+    lightGreen: "Not baaa-d at all 🐑",
+    darkGreen: "Shear perfection! ✨"
+  };
+  return slogans[rating] || "Check the details below!";
+}
+
+function getFabricRowsHTML() {
+  // For now we’re using a placeholder composition.
+  // Later you’ll replace this with scraped/parsed material data.
+  const fabric = [
+    { name: "Cotton", percent: 60 },
+    { name: "Polyester", percent: 35 },
+    { name: "Elastane", percent: 5 },
+  ];
+
+  return fabric
+    .map(
+      (f) => `
+      <div class="sheep-fabric-row">
+        <span class="sheep-fabric-name">${f.name}</span>
+        <span class="sheep-fabric-percent">${f.percent}%</span>
+      </div>
+    `
+    )
+    .join("");
+}
+
+// Create rating button with text label and hover popup
 function createRatingIndicator(score) {
   const rating = getRatingFromScore(score);
   const label = getLabelFromRating(rating);
 
+  // Create container for button and popup
+  const container = document.createElement('div');
+  container.className = 'fabric-rating-container';
+  container.style.cssText = 'position: absolute !important; bottom: 12px !important; right: 12px !important; z-index: 1000 !important;'; // Updated positioning to match CSS
+
+  // Create the button
   const button = document.createElement('div');
   button.className = `fabric-rating-button fabric-rating-${rating}`;
+  // Remove inline styles that might conflict with new CSS
+  button.style.cssText = '';
+  // Revert to simple text label for the "original" button style
   button.textContent = label;
 
-  return button;
+  // Create the hover popup with NEW structure
+  const popup = document.createElement('div');
+  popup.className = 'fabric-hover-popup';
+
+  // Fabric data helper
+  const fabricRows = getFabricRowsHTML(); // Use existing helper
+  const mascotUrl = chrome.runtime.getURL('icons/mascot.svg'); // Ensure we have this
+  const slogan = getSloganFromRating(rating);
+
+  popup.innerHTML = `
+    <!-- Top Toggle -->
+    <div class="sheep-toggle-container">
+      <div class="sheep-toggle-label">Saved</div>
+    </div>
+
+    <!-- Wavy Header with Mascot -->
+    <div class="sheep-popup-header">
+      <div class="sheep-mascot-float">
+        <img src="${mascotUrl}" alt="Wooly">
+      </div>
+      <div class="sheep-score-display">
+        <div class="sheep-title">Wooly</div>
+        <div class="sheep-big-score">${score}</div>
+      </div>
+    </div>
+
+    <!-- Content Body -->
+    <div class="sheep-content-body">
+      <div class="sheep-question-text">
+        ${slogan}
+      </div>
+      
+      <div class="sheep-data-box">
+        <div class="sheep-fabric-title" style="margin-bottom: 8px; font-size: 11px; text-transform: uppercase; color: #6B7280; letter-spacing: 0.5px;">Composition</div>
+        ${fabricRows}
+      </div>
+    </div>
+  `;
+
+  // Track hover state for both button and popup
+  let hideTimeout = null;
+  let isOverPopup = false;
+  let isOverButton = false;
+
+  const showPopup = () => {
+    if (hideTimeout) clearTimeout(hideTimeout);
+
+    // Position logic
+    const buttonRect = button.getBoundingClientRect();
+    popup.style.position = 'fixed';
+
+    // Position to the left of the button by default, or right if space allows
+    // For now, let's hover above-left
+    popup.style.left = `${buttonRect.left - 300}px`; // Shift left
+    popup.style.top = `${buttonRect.top - 150}px`;   // Shift up
+
+    // Better positioning logic could go here, but stick to simple for now
+    // Actually, let's center it above the mouse/button more intelligently
+    popup.style.left = `${buttonRect.left - 280}px`;
+    popup.style.top = `${buttonRect.top - 50}px`;
+
+    document.body.appendChild(popup);
+
+    // Force reflow for transition
+    requestAnimationFrame(() => {
+      popup.classList.add('visible');
+    });
+  };
+
+  const hidePopup = () => {
+    hideTimeout = setTimeout(() => {
+      if (!isOverPopup && !isOverButton) {
+        popup.classList.remove('visible');
+        setTimeout(() => {
+          if (popup.parentNode && !popup.classList.contains('visible')) {
+            popup.parentNode.removeChild(popup);
+          }
+        }, 200); // Wait for fade out
+      }
+    }, 150);
+  };
+
+  // Event Listeners
+  button.addEventListener('mouseenter', () => {
+    isOverButton = true;
+    showPopup();
+  });
+
+  button.addEventListener('mouseleave', () => {
+    isOverButton = false;
+    hidePopup();
+  });
+
+  popup.addEventListener('mouseenter', () => {
+    isOverPopup = true;
+    if (hideTimeout) clearTimeout(hideTimeout);
+  });
+
+  popup.addEventListener('mouseleave', () => {
+    isOverPopup = false;
+    hidePopup();
+  });
+
+  container.appendChild(button);
+  // Popup is appended to body on hover, not container, to avoid z-index clipping issues in some sites
+
+  return container;
 }
 
 // Add rating indicators to product cards
