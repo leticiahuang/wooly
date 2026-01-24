@@ -67,7 +67,7 @@
   background-color: #22C55E;
   color: #052E16;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 }
 
 /* Gold star glitter - sporadic random flashes */
@@ -184,56 +184,29 @@
   }
 }
 
+/* Star on top-right edge */
 .fabric-rating-button.fabric-rating-darkGreen::before {
   content: '✦';
   position: absolute;
-  top: 3px;
-  left: 5px;
-  font-size: 7px;
+  top: -6px;
+  right: -4px;
+  font-size: 14px;
   color: #FFD700;
-  text-shadow:
-    /* Sporadic scattered stars - non-uniform placement */
-    12px -1px 0 rgba(255, 215, 0, 0.95),
-    31px 2px 0 rgba(255, 200, 50, 0.7),
-    52px -2px 0 rgba(255, 223, 100, 0.85),
-    71px 1px 0 rgba(255, 215, 0, 0.6),
-    89px -1px 0 rgba(255, 200, 50, 0.9),
-    6px 8px 0 rgba(255, 200, 50, 0.65),
-    24px 5px 0 rgba(255, 215, 0, 0.85),
-    43px 9px 0 rgba(255, 223, 100, 0.75),
-    63px 6px 0 rgba(255, 200, 50, 0.9),
-    82px 8px 0 rgba(255, 215, 0, 0.7),
-    17px 13px 0 rgba(255, 223, 100, 0.8),
-    38px 11px 0 rgba(255, 215, 0, 0.65),
-    57px 14px 0 rgba(255, 200, 50, 0.85),
-    77px 12px 0 rgba(255, 223, 100, 0.75),
-    93px 10px 0 rgba(255, 215, 0, 0.9);
+  text-shadow: 0 0 6px rgba(255, 215, 0, 0.8), 0 0 12px rgba(255, 215, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.3);
+  filter: drop-shadow(0 0 2px rgba(255, 215, 0, 0.6));
   pointer-events: none;
 }
 
+/* Star on bottom-left edge */
 .fabric-rating-button.fabric-rating-darkGreen::after {
-  content: '★';
+  content: '✦';
   position: absolute;
-  top: 1px;
-  left: 18px;
-  font-size: 6px;
-  color: rgba(255, 215, 0, 0.85);
-  text-shadow:
-    /* More sporadic stars with varying opacity */
-    19px 3px 0 rgba(255, 223, 100, 0.75),
-    41px -2px 0 rgba(255, 200, 50, 0.9),
-    59px 4px 0 rgba(255, 215, 0, 0.6),
-    79px 1px 0 rgba(255, 223, 100, 0.8),
-    9px 10px 0 rgba(255, 200, 50, 0.7),
-    28px 7px 0 rgba(255, 223, 100, 0.9),
-    49px 11px 0 rgba(255, 215, 0, 0.75),
-    69px 8px 0 rgba(255, 200, 50, 0.85),
-    86px 6px 0 rgba(255, 215, 0, 0.65),
-    14px 15px 0 rgba(255, 215, 0, 0.85),
-    35px 13px 0 rgba(255, 223, 100, 0.7),
-    54px 16px 0 rgba(255, 200, 50, 0.8),
-    73px 14px 0 rgba(255, 215, 0, 0.9),
-    91px 12px 0 rgba(255, 223, 100, 0.65);
+  bottom: -5px;
+  left: -3px;
+  font-size: 12px;
+  color: #FFD700;
+  text-shadow: 0 0 6px rgba(255, 215, 0, 0.8), 0 0 12px rgba(255, 215, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.3);
+  filter: drop-shadow(0 0 2px rgba(255, 215, 0, 0.6));
   pointer-events: none;
 }
 
