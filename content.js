@@ -49,27 +49,28 @@ function getRatingFromScore(score) {
 // Create rating indicator with hover tooltip
 function createRatingIndicator(score) {
   const rating = getRatingFromScore(score);
-  
+
   const container = document.createElement('div');
   container.className = 'fabric-rating-container';
-  
+
   const indicator = document.createElement('div');
   indicator.className = `fabric-rating-indicator fabric-rating-${rating}`;
-  
+
   const light = document.createElement('div');
   light.className = 'fabric-rating-light';
   indicator.appendChild(light);
-  
-  const tooltip = document.createElement('div');
-  tooltip.className = 'fabric-rating-tooltip-hover';
-  tooltip.innerHTML = `
-    <div class="tooltip-score">${score}</div>
-    <div class="tooltip-label">Sustainability Score</div>
+
+  // Create hover rectangle
+  const hoverRect = document.createElement('div');
+  hoverRect.className = `fabric-hover-rectangle fabric-hover-${rating}`;
+  hoverRect.innerHTML = `
+    <div class="hover-rect-score">${score}</div>
+    <div class="hover-rect-label">Sustainability</div>
   `;
-  
+
   container.appendChild(indicator);
-  container.appendChild(tooltip);
-  
+  container.appendChild(hoverRect);
+
   return container;
 }
 
@@ -77,48 +78,48 @@ function createRatingIndicator(score) {
 function addRatingsToProducts() {
   const config = getSiteConfig();
   console.log('Scanning for products with config:', config);
-  
+
   const productCards = document.querySelectorAll(config.productCards);
   console.log(`Found ${productCards.length} product cards`);
-  
+
   let addedCount = 0;
-  
+
   productCards.forEach((card, index) => {
     // Skip if already processed
     if (card.querySelector('.fabric-rating-container')) return;
-    
+
     // Find the image or image container
     let imageContainer = card.querySelector(config.imageContainer);
-    
+
     // Fallback: find any image in the card
     if (!imageContainer) {
       const img = card.querySelector('img');
       imageContainer = img ? img.parentElement : null;
     }
-    
+
     if (!imageContainer) {
       console.log('No image container found for card', index);
       return;
     }
-    
+
     // Make sure the container is positioned
     const position = window.getComputedStyle(imageContainer).position;
     if (position === 'static') {
       imageContainer.style.position = 'relative';
     }
-    
+
     // Generate random score (will be replaced with API call)
     const score = getRandomScore();
-    
+
     // Create and add indicator
     const indicator = createRatingIndicator(score);
     imageContainer.appendChild(indicator);
-    
+
     addedCount++;
   });
-  
+
   console.log(`Added ${addedCount} rating indicators`);
-  
+
   // Update count in storage
   chrome.storage.sync.get(['ratedCount'], (data) => {
     const newCount = (data.ratedCount || 0) + addedCount;
@@ -142,7 +143,7 @@ function debounce(func, wait) {
 // Initialize when page loads
 function init() {
   console.log('Initializing Fabric Rating Extension');
-  
+
   // Wait a bit for the page to load
   setTimeout(() => {
     addRatingsToProducts();
@@ -160,10 +161,10 @@ const debouncedScan = debounce(addRatingsToProducts, 1000);
 
 const observer = new MutationObserver((mutations) => {
   // Check if significant changes occurred
-  const hasNewProducts = mutations.some(mutation => 
+  const hasNewProducts = mutations.some(mutation =>
     mutation.addedNodes.length > 0
   );
-  
+
   if (hasNewProducts) {
     debouncedScan();
   }
