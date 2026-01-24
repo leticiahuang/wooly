@@ -6,18 +6,26 @@ const SITE_CONFIGS = {
   'zara.com': {
     productCards: '.product-grid-product',
     imageContainer: '.product-grid-product-info__media, .media-image',
+    productLink: 'a.product-link',
+    compositionSelector: '.product-detail-info__composition, .product-detail-extra-info__composition-care',
   },
   'hm.com': {
     productCards: '.product-item, article[class*="product"]',
     imageContainer: '.item-image, .image-container',
+    productLink: 'a[href*="/productpage"]',
+    compositionSelector: '[class*="composition"], [class*="material"]',
   },
   'uniqlo.com': {
     productCards: '.fr-product-tile, .productTile',
     imageContainer: '.tile-image, .product-tile__image',
+    productLink: 'a.product-tile__link',
+    compositionSelector: '.product-composition, [data-test="composition"]',
   },
   'asos.com': {
     productCards: 'article[data-auto-id="productTile"]',
     imageContainer: 'a[data-auto-id="productTileImage"]',
+    productLink: 'a[data-auto-id="productTileLink"]',
+    compositionSelector: '[class*="about-me"], [class*="composition"]',
   }
 };
 
@@ -31,6 +39,8 @@ function getSiteConfig() {
   return {
     productCards: 'article, .product, .product-card, [class*="product"]',
     imageContainer: 'img, a, .image',
+    productLink: 'a',
+    compositionSelector: '[class*="composition"], [class*="material"]',
   };
 }
 
@@ -46,12 +56,103 @@ function getRatingFromScore(score) {
   return 'red';
 }
 
+// Parse material composition from text
+function parseComposition(text) {
+  if (!text) return null;
+  
+  const materials = [];
+  
+  // Common patterns: "100% Cotton", "Cotton 100%", "50% Polyester, 50% Cotton"
+  const percentPattern = /(\d+)%?\s*([a-zA-Z\s]+)|([a-zA-Z\s]+)\s*(\d+)%/gi;
+  
+  let match;
+  while ((match = percentPattern.exec(text)) !== null) {
+    const percentage = match[1] || match[4];
+    const material = (match[2] || match[3]).trim().toLowerCase();
+    
+    if (percentage && material) {
+      materials.push({
+        name: material,
+        percentage: parseInt(percentage)
+      });
+    }
+  }
+  
+  return materials.length > 0 ? materials : null;
+}
+
+// Scrape composition from Zara product page
+async function scrapeZaraComposition(productUrl) {
+  try {
+    console.log('Requesting composition scrape for:', productUrl);
+    
+    // Send message to background script to open the page and scrape
+    return new Promise((resolve) => {
+      chrome.runtime.sendMessage(
+        { 
+          action: 'scrapeComposition', 
+          url: productUrl 
+        }, 
+        (response) => {
+          if (response && response.success) {
+            resolve(response.data);
+          } else {
+            console.error('Failed to scrape:', response?.error);
+            resolve(null);
+          }
+        }
+      );
+    });
+  } catch (error) {
+    console.error('Error scraping composition:', error);
+    return null;
+  }
+}
+
+// Scrape composition from any product page
+async function scrapeComposition(productUrl) {
+  const hostname = window.location.hostname;
+  
+  if (hostname.includes('zara.com')) {
+    return await scrapeZaraComposition(productUrl);
+  }
+  
+  // Generic scraping for other sites
+  try {
+    const response = await fetch(productUrl);
+    const html = await response.text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    
+    const config = getSiteConfig();
+    const element = doc.querySelector(config.compositionSelector);
+    
+    if (element) {
+      const text = element.textContent.trim();
+      const materials = parseComposition(text);
+      return {
+        raw: text,
+        materials: materials
+      };
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error scraping composition:', error);
+    return null;
+  }
+}
+
 // Create rating indicator with hover tooltip
-function createRatingIndicator(score) {
+function createRatingIndicator(score, productUrl, compositionData) {
   const rating = getRatingFromScore(score);
   
   const container = document.createElement('div');
   container.className = 'fabric-rating-container';
+  container.setAttribute('data-product-url', productUrl);
+  if (compositionData) {
+    container.setAttribute('data-composition', JSON.stringify(compositionData));
+  }
   
   const indicator = document.createElement('div');
   indicator.className = `fabric-rating-indicator fabric-rating-${rating}`;
@@ -70,11 +171,105 @@ function createRatingIndicator(score) {
   container.appendChild(indicator);
   container.appendChild(tooltip);
   
+  // Click handler to show detailed popup
+  container.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    showDetailedPopup(productUrl, compositionData, score, rating);
+  });
+  
   return container;
 }
 
+// Show detailed composition popup
+function showDetailedPopup(productUrl, compositionData, score, rating) {
+  // Remove any existing popup
+  const existingPopup = document.querySelector('.fabric-detail-popup');
+  if (existingPopup) existingPopup.remove();
+  
+  const popup = document.createElement('div');
+  popup.className = 'fabric-detail-popup';
+  
+  let materialsHtml = '<p class="no-data">Loading composition data...</p>';
+  
+  if (compositionData && compositionData.materials) {
+    materialsHtml = compositionData.materials.map(mat => `
+      <div class="material-item">
+        <span class="material-name">${mat.name.charAt(0).toUpperCase() + mat.name.slice(1)}</span>
+        <span class="material-percentage">${mat.percentage}%</span>
+      </div>
+    `).join('');
+  } else if (compositionData && compositionData.raw) {
+    materialsHtml = `<p class="raw-composition">${compositionData.raw}</p>`;
+  }
+  
+  popup.innerHTML = `
+    <div class="popup-header">
+      <h3>Material Composition</h3>
+      <button class="popup-close">×</button>
+    </div>
+    <div class="popup-content">
+      <div class="score-display ${rating}">
+        <div class="score-number">${score}</div>
+        <div class="score-label">Sustainability Score</div>
+      </div>
+      <div class="materials-list">
+        <h4>Composition</h4>
+        ${materialsHtml}
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(popup);
+  
+  // If we don't have composition data yet, fetch it
+  if (!compositionData) {
+    scrapeComposition(productUrl).then(data => {
+      if (data) {
+        const materialsList = popup.querySelector('.materials-list');
+        if (data.materials) {
+          materialsList.innerHTML = `
+            <h4>Composition</h4>
+            ${data.materials.map(mat => `
+              <div class="material-item">
+                <span class="material-name">${mat.name.charAt(0).toUpperCase() + mat.name.slice(1)}</span>
+                <span class="material-percentage">${mat.percentage}%</span>
+              </div>
+            `).join('')}
+          `;
+        } else if (data.raw) {
+          materialsList.innerHTML = `
+            <h4>Composition</h4>
+            <p class="raw-composition">${data.raw}</p>
+          `;
+        }
+      } else {
+        popup.querySelector('.materials-list').innerHTML = `
+          <h4>Composition</h4>
+          <p class="no-data">Could not load composition data</p>
+        `;
+      }
+    });
+  }
+  
+  // Close button
+  popup.querySelector('.popup-close').addEventListener('click', () => {
+    popup.remove();
+  });
+  
+  // Close when clicking outside
+  setTimeout(() => {
+    document.addEventListener('click', function closePopup(e) {
+      if (!popup.contains(e.target)) {
+        popup.remove();
+        document.removeEventListener('click', closePopup);
+      }
+    });
+  }, 100);
+}
+
 // Add rating indicators to product cards
-function addRatingsToProducts() {
+async function addRatingsToProducts() {
   const config = getSiteConfig();
   console.log('Scanning for products with config:', config);
   
@@ -83,9 +278,22 @@ function addRatingsToProducts() {
   
   let addedCount = 0;
   
-  productCards.forEach((card, index) => {
+  for (const card of productCards) {
     // Skip if already processed
-    if (card.querySelector('.fabric-rating-container')) return;
+    if (card.querySelector('.fabric-rating-container')) continue;
+    
+    // Find the product link
+    let productLink = card.querySelector(config.productLink);
+    if (!productLink) {
+      productLink = card.querySelector('a[href*="/product"], a[href*="/p/"]');
+    }
+    
+    if (!productLink) {
+      console.log('No product link found for card');
+      continue;
+    }
+    
+    const productUrl = productLink.href;
     
     // Find the image or image container
     let imageContainer = card.querySelector(config.imageContainer);
@@ -97,8 +305,8 @@ function addRatingsToProducts() {
     }
     
     if (!imageContainer) {
-      console.log('No image container found for card', index);
-      return;
+      console.log('No image container found for card');
+      continue;
     }
     
     // Make sure the container is positioned
@@ -110,12 +318,12 @@ function addRatingsToProducts() {
     // Generate random score (will be replaced with API call)
     const score = getRandomScore();
     
-    // Create and add indicator
-    const indicator = createRatingIndicator(score);
+    // Create and add indicator (composition will be loaded on demand)
+    const indicator = createRatingIndicator(score, productUrl, null);
     imageContainer.appendChild(indicator);
     
     addedCount++;
-  });
+  }
   
   console.log(`Added ${addedCount} rating indicators`);
   

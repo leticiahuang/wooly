@@ -5,10 +5,15 @@
   "description": "Rates clothing materials while shopping online",
   "permissions": [
     "activeTab",
-    "storage"
+    "storage",
+    "scripting",
+    "tabs"
   ],
   "host_permissions": [
-    "https://*/*"
+    "https://www.zara.com/*",
+    "https://www.hm.com/*",
+    "https://www.uniqlo.com/*",
+    "https://www.asos.com/*"
   ],
   "content_scripts": [
     {
