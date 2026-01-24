@@ -1,0 +1,159 @@
+/* Rating indicator container */
+.fabric-rating-container {
+  position: absolute !important;
+  bottom: 10px !important;
+  left: 10px !important;
+  z-index: 1000 !important;
+}
+
+/* Rating indicator styles */
+.fabric-rating-indicator {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  transition: transform 0.2s, box-shadow 0.2s;
+  position: relative;
+}
+
+.fabric-rating-indicator:hover {
+  transform: scale(1.15);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+
+.fabric-rating-light {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.95);
+}
+
+/* Color coding */
+.fabric-rating-green {
+  background: linear-gradient(135deg, #4CAF50, #66BB6A);
+}
+
+.fabric-rating-green .fabric-rating-light {
+  background: radial-gradient(circle at 30% 30%, #81C784, #4CAF50);
+  box-shadow: 0 0 10px rgba(76, 175, 80, 0.7), inset 0 1px 3px rgba(255,255,255,0.5);
+  animation: pulse-green 2s ease-in-out infinite;
+}
+
+.fabric-rating-yellow {
+  background: linear-gradient(135deg, #FFC107, #FFD54F);
+}
+
+.fabric-rating-yellow .fabric-rating-light {
+  background: radial-gradient(circle at 30% 30%, #FFE082, #FFC107);
+  box-shadow: 0 0 10px rgba(255, 193, 7, 0.7), inset 0 1px 3px rgba(255,255,255,0.5);
+  animation: pulse-yellow 2s ease-in-out infinite;
+}
+
+.fabric-rating-red {
+  background: linear-gradient(135deg, #F44336, #EF5350);
+}
+
+.fabric-rating-red .fabric-rating-light {
+  background: radial-gradient(circle at 30% 30%, #E57373, #F44336);
+  box-shadow: 0 0 10px rgba(244, 67, 54, 0.7), inset 0 1px 3px rgba(255,255,255,0.5);
+  animation: pulse-red 2s ease-in-out infinite;
+}
+
+/* Pulse animations */
+@keyframes pulse-green {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(76, 175, 80, 0.7), inset 0 1px 3px rgba(255,255,255,0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(76, 175, 80, 0.9), inset 0 1px 3px rgba(255,255,255,0.5);
+  }
+}
+
+@keyframes pulse-yellow {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(255, 193, 7, 0.7), inset 0 1px 3px rgba(255,255,255,0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(255, 193, 7, 0.9), inset 0 1px 3px rgba(255,255,255,0.5);
+  }
+}
+
+@keyframes pulse-red {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(244, 67, 54, 0.7), inset 0 1px 3px rgba(255,255,255,0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(244, 67, 54, 0.9), inset 0 1px 3px rgba(255,255,255,0.5);
+  }
+}
+
+/* Hover tooltip */
+.fabric-rating-tooltip-hover {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-8px);
+  background: rgba(0, 0, 0, 0.92);
+  color: white;
+  padding: 10px 14px;
+  border-radius: 8px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  z-index: 10001;
+  backdrop-filter: blur(10px);
+  margin-bottom: 5px;
+}
+
+.fabric-rating-tooltip-hover::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: rgba(0, 0, 0, 0.92);
+}
+
+.fabric-rating-container:hover .fabric-rating-tooltip-hover {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-12px);
+}
+
+.tooltip-score {
+  font-size: 24px;
+  font-weight: bold;
+  text-align: center;
+  line-height: 1;
+  margin-bottom: 4px;
+  background: linear-gradient(135deg, #fff, #e0e0e0);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.tooltip-label {
+  font-size: 11px;
+  text-align: center;
+  opacity: 0.85;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+/* Ensure proper stacking */
+.fabric-rating-container,
+.fabric-rating-indicator,
+.fabric-rating-tooltip-hover {
+  pointer-events: auto !important;
+}
+
+/* Make sure parent containers don't interfere */
+.fabric-rating-container * {
+  box-sizing: border-box !important;
+}
