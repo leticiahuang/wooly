@@ -1,11 +1,16 @@
 // Background service worker
 console.log('Fabric Rating Extension background worker loaded');
 
+// Cache for scraped compositions
+const compositionCache = new Map();
+
+// Queue for scraping requests
+let scrapeQueue = [];
+let isProcessing = false;
+
 // Listen for installation
 chrome.runtime.onInstalled.addListener(() => {
   console.log('Fabric Rating Extension installed');
-  
-  // Set default settings
   chrome.storage.sync.set({
     enabled: true,
     showNotifications: true
@@ -15,124 +20,155 @@ chrome.runtime.onInstalled.addListener(() => {
 // Parse material composition from text
 function parseComposition(text) {
   if (!text) return null;
-  
+
   const materials = [];
-  
-  // Common patterns: "100% Cotton", "Cotton 100%", "50% Polyester, 50% Cotton"
   const percentPattern = /(\d+)%?\s*([a-zA-Z\s]+)|([a-zA-Z\s]+)\s*(\d+)%/gi;
-  
+
   let match;
   while ((match = percentPattern.exec(text)) !== null) {
     const percentage = match[1] || match[4];
     const material = (match[2] || match[3]).trim().toLowerCase();
-    
-    if (percentage && material) {
+
+    if (percentage && material && material.length < 30) {
       materials.push({
         name: material,
         percentage: parseInt(percentage)
       });
     }
   }
-  
+
   return materials.length > 0 ? materials : null;
 }
 
-// Function to scrape composition by injecting a script into the product page
-async function scrapeCompositionInTab(url) {
+// Process queue - only one tab at a time!
+async function processQueue() {
+  if (isProcessing || scrapeQueue.length === 0) return;
+
+  isProcessing = true;
+  const { url, resolve, reject } = scrapeQueue.shift();
+
+  // Check cache first
+  if (compositionCache.has(url)) {
+    console.log('Cache hit for:', url);
+    resolve(compositionCache.get(url));
+    isProcessing = false;
+    processQueue(); // Process next
+    return;
+  }
+
+  let tab = null;
+
   try {
-    // Create a new tab (hidden) to load the product page
-    const tab = await chrome.tabs.create({ url: url, active: false });
-    
-    // Wait for the page to load
-    await new Promise(resolve => {
-      chrome.tabs.onUpdated.addListener(function listener(tabId, info) {
-        if (tabId === tab.id && info.status === 'complete') {
-          chrome.tabs.onUpdated.removeListener(listener);
-          setTimeout(resolve, 2000); // Wait extra time for dynamic content
-        }
-      });
+    // Create hidden tab
+    tab = await chrome.tabs.create({
+      url: url,
+      active: false,
+      index: 0 // Put it at the start so it's less noticeable
     });
-    
+
+    console.log('Opened background tab:', tab.id, 'for:', url);
+
+    // Wait for page to load
+    await new Promise((resolveWait, rejectWait) => {
+      const timeout = setTimeout(() => {
+        rejectWait(new Error('Timeout'));
+      }, 10000);
+
+      const listener = (tabId, info) => {
+        if (tabId === tab.id && info.status === 'complete') {
+          clearTimeout(timeout);
+          chrome.tabs.onUpdated.removeListener(listener);
+          setTimeout(() => resolveWait(), 1500); // Extra wait for dynamic content
+        }
+      };
+      chrome.tabs.onUpdated.addListener(listener);
+    });
+
     // Inject script to extract composition
     const results = await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: () => {
-        // Try multiple selectors for Zara's composition section
         const selectors = [
           '.product-detail-info__composition',
           '.product-detail-extra-info__composition',
-          '[data-qa-anchor="product-detail-info__composition"]',
           '.expandable-text__inner-content',
-          '.product-detail-view__composition',
           '[class*="composition"]',
           '[class*="material"]'
         ];
-        
+
         let compositionText = null;
-        
-        // Try to click the "Composition, care and origin" tab if it exists
+
+        // Try to click composition tab
         const tabs = document.querySelectorAll('[class*="tab"], button[class*="accordion"]');
-        for (const tab of tabs) {
-          if (/composition|material|fabric|care/i.test(tab.textContent)) {
-            tab.click();
+        for (const t of tabs) {
+          if (/composition|material|fabric/i.test(t.textContent)) {
+            t.click();
             break;
           }
         }
-        
-        // Wait a moment for content to appear after clicking
-        setTimeout(() => {}, 500);
-        
+
         for (const selector of selectors) {
           const elements = document.querySelectorAll(selector);
           for (const el of elements) {
             const text = el.textContent.trim();
-            // Check if it contains percentage or material keywords
-            if (text && (text.includes('%') || /cotton|polyester|viscose|wool|silk|linen|acrylic|nylon|elastane|spandex/i.test(text))) {
+            if (text && (text.includes('%') || /cotton|polyester|viscose|wool|silk|linen/i.test(text))) {
               compositionText = text;
               break;
             }
           }
           if (compositionText) break;
         }
-        
-        // Fallback: look in all text content
-        if (!compositionText) {
-          const allText = document.body.textContent;
-          const compositionMatch = allText.match(/(?:composition|material|fabric)[\s:]+([^.]+(?:\d+%[^.]+)+)/i);
-          if (compositionMatch) {
-            compositionText = compositionMatch[1];
-          }
-        }
-        
+
         return compositionText;
       }
     });
-    
-    // Close the tab
+
+    // Close tab immediately
     await chrome.tabs.remove(tab.id);
-    
+    tab = null;
+
     if (results && results[0] && results[0].result) {
       const compositionText = results[0].result;
       const materials = parseComposition(compositionText);
-      
-      return {
-        raw: compositionText,
-        materials: materials
-      };
+      const data = { raw: compositionText, materials };
+
+      // Cache the result
+      compositionCache.set(url, data);
+      console.log('Scraped and cached:', url, materials);
+
+      resolve(data);
+    } else {
+      compositionCache.set(url, null); // Cache the miss too
+      resolve(null);
     }
-    
-    return null;
+
   } catch (error) {
-    console.error('Error in scrapeCompositionInTab:', error);
-    return null;
+    console.error('Scrape error:', error.message);
+    if (tab) {
+      try { await chrome.tabs.remove(tab.id); } catch (e) { }
+    }
+    resolve(null);
   }
+
+  isProcessing = false;
+
+  // Wait before processing next (rate limiting)
+  setTimeout(() => processQueue(), 2000);
+}
+
+// Add to queue
+function queueScrape(url) {
+  return new Promise((resolve, reject) => {
+    scrapeQueue.push({ url, resolve, reject });
+    processQueue();
+  });
 }
 
 // Handle messages from content scripts
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'scrapeComposition') {
-    // Handle async scraping
-    scrapeCompositionInTab(request.url)
+    // Use the queue system
+    queueScrape(request.url)
       .then(data => {
         sendResponse({ success: true, data: data });
       })
@@ -142,18 +178,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       });
     return true; // Will respond asynchronously
   }
-  
+
   if (request.action === 'analyzeMaterial') {
     // Material analysis logic could be moved here if needed
     sendResponse({ success: true });
   }
-  
+
   if (request.action === 'getSettings') {
     chrome.storage.sync.get(['enabled', 'showNotifications'], (data) => {
       sendResponse(data);
     });
     return true; // Will respond asynchronously
   }
-  
+
   return false;
 });
