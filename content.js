@@ -89,11 +89,13 @@ async function scrapeZaraComposition(productUrl) {
     // Send message to background script to open the page and scrape
     return new Promise((resolve) => {
       chrome.runtime.sendMessage(
-        { 
-          action: 'scrapeComposition', 
-          url: productUrl 
-        }, 
+        { action: 'scrapeComposition', url: productUrl },
         (response) => {
+          if (chrome.runtime.lastError) {
+            console.error('sendMessage error:', chrome.runtime.lastError);
+            resolve(null);
+            return;
+          }
           if (response && response.success) {
             resolve(response.data);
           } else {
