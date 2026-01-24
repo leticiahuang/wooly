@@ -14,7 +14,7 @@ function createMascotIcon() {
 
   // Create image from mascot file
   const img = document.createElement('img');
-  img.src = chrome.runtime.getURL('icons/mascot.svg');
+  img.src = chrome.runtime.getURL('icons/icon128.png');
   img.alt = 'Wooly';
   icon.appendChild(img);
 
@@ -102,10 +102,10 @@ function getLabelFromRating(rating) {
 // Get dynamic slogan from rating
 function getSloganFromRating(rating) {
   const slogans = {
-    red: "Don't get fleeced! 🙅",
-    medium: "This fabric is a bit... <br> fuzzy 🤔",
-    lightGreen: "Not baaa-d at all 🐑",
-    darkGreen: "Shear perfection! ✨"
+    red: "Don't get fleeced! <span class=\"sheep-emoji\">🙅</span>",
+    medium: "This fabric is a bit... <br> fuzzy <span class=\"sheep-emoji\">🤔</span>",
+    lightGreen: "Not baaa-d at all <span class=\"sheep-emoji\">🐑</span>",
+    darkGreen: "Shear perfection! <span class=\"sheep-emoji\">✨</span>"
   };
   return slogans[rating] || "Check the details below!";
 }
@@ -123,8 +123,13 @@ function getFabricRowsHTML() {
     .map(
       (f) => `
       <div class="sheep-fabric-row">
-        <span class="sheep-fabric-name">${f.name}</span>
-        <span class="sheep-fabric-percent">${f.percent}%</span>
+        <div class="sheep-fabric-info">
+          <span class="sheep-fabric-name">${f.name}</span>
+          <span class="sheep-fabric-percent">${f.percent}%</span>
+        </div>
+        <div class="sheep-fabric-bar-track">
+          <div class="sheep-fabric-bar-fill" style="width: ${f.percent}%"></div>
+        </div>
       </div>
     `
     )
@@ -139,7 +144,7 @@ function createRatingIndicator(score) {
   // Create container for button and popup
   const container = document.createElement('div');
   container.className = 'fabric-rating-container';
-  container.style.cssText = 'position: absolute !important; bottom: 12px !important; right: 12px !important; z-index: 1000 !important;'; // Updated positioning to match CSS
+  container.style.cssText = 'position: absolute !important; bottom: 12px !important; right: 12px !important; z-index: 1000 !important; left: auto !important;'; // Updated positioning to match CSS
 
   // Create the button
   const button = document.createElement('div');
@@ -155,23 +160,33 @@ function createRatingIndicator(score) {
 
   // Fabric data helper
   const fabricRows = getFabricRowsHTML(); // Use existing helper
-  const mascotUrl = chrome.runtime.getURL('icons/mascot.svg'); // Ensure we have this
   const slogan = getSloganFromRating(rating);
 
-  popup.innerHTML = `
-    <!-- Top Toggle -->
-    <div class="sheep-toggle-container">
-      <div class="sheep-toggle-label">Saved</div>
-    </div>
+  // Circular Score Calculations
+  const radius = 36;
+  const circumference = 2 * Math.PI * radius; // ~226.19
+  const offset = circumference - (score / 100) * circumference;
 
-    <!-- Wavy Header with Mascot -->
-    <div class="sheep-popup-header">
-      <div class="sheep-mascot-float">
-        <img src="${mascotUrl}" alt="Wooly">
-      </div>
-      <div class="sheep-score-display">
-        <div class="sheep-title">Wooly</div>
-        <div class="sheep-big-score">${score}</div>
+  popup.innerHTML = `
+    <!-- Wavy Header with Circular Score -->
+    <div class="sheep-popup-header centered-header">
+      <div class="sheep-score-display centered-score">
+        <div class="sheep-title">Wooly Estimate</div>
+        
+        <div class="sheep-circular-widget">
+          <svg class="sheep-circle-svg" width="100" height="100" viewBox="0 0 100 100">
+            <!-- Background Track -->
+            <circle class="score-track" cx="50" cy="50" r="${radius}"></circle>
+            <!-- Progress Fill -->
+            <circle class="score-fill rating-${rating}" cx="50" cy="50" r="${radius}"
+              style="stroke-dasharray: ${circumference}; stroke-dashoffset: ${offset};">
+            </circle>
+          </svg>
+          <div class="sheep-circle-text">
+            <span class="sheep-big-score">${score}</span>
+            <span class="sheep-score-max">/100</span>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -182,7 +197,7 @@ function createRatingIndicator(score) {
       </div>
       
       <div class="sheep-data-box">
-        <div class="sheep-fabric-title" style="margin-bottom: 8px; font-size: 11px; text-transform: uppercase; color: #6B7280; letter-spacing: 0.5px;">Composition</div>
+        <div class="sheep-fabric-title">Material Breakdown</div>
         ${fabricRows}
       </div>
     </div>
