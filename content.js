@@ -5,28 +5,28 @@ console.log('Fabric Rating Extension loaded');
 function createMascotIcon() {
   // Don't add if already exists
   if (document.querySelector('.wooly-mascot-container')) return;
-  
+
   const container = document.createElement('div');
   container.className = 'wooly-mascot-container';
-  
+
   const icon = document.createElement('div');
   icon.className = 'wooly-mascot-icon';
-  
+
   // Create image from mascot file
   const img = document.createElement('img');
   img.src = chrome.runtime.getURL('icons/mascot.svg');
   img.alt = 'Wooly';
   icon.appendChild(img);
-  
+
   // Tooltip
   const tooltip = document.createElement('div');
   tooltip.className = 'wooly-mascot-tooltip';
   tooltip.textContent = '🧶 Wooly is active!';
-  
+
   container.appendChild(icon);
   container.appendChild(tooltip);
   document.body.appendChild(container);
-  
+
   // Optional: click to scroll to top or show info
   container.addEventListener('click', () => {
     tooltip.textContent = '✨ Checking fabric quality...';
@@ -69,44 +69,46 @@ function getSiteConfig() {
   };
 }
 
-// Generate random score (will be replaced with API call later)
-function getRandomScore() {
-  return Math.floor(Math.random() * 100) + 1;
+// Get random score for testing (0-100)
+function getProductScore() {
+  // Generate random score between 0 and 100 for testing
+  return Math.floor(Math.random() * 101);
 }
 
-// Determine rating based on score
+// Determine rating based on score using new 4-tier color system
 function getRatingFromScore(score) {
-  if (score >= 70) return 'green';
-  if (score >= 40) return 'yellow';
-  return 'red';
+  // Use scoreColors if available, otherwise fallback
+  if (window.scoreColors && window.scoreColors.getColorClassFromScore) {
+    return window.scoreColors.getColorClassFromScore(score);
+  }
+  // Fallback logic matching scoreColors.js
+  if (score <= 40) return 'red';
+  if (score <= 65) return 'medium';
+  if (score <= 85) return 'lightGreen';
+  return 'darkGreen';
 }
 
-// Create rating indicator with hover tooltip
+// Get label text from rating
+function getLabelFromRating(rating) {
+  const labels = {
+    red: 'Poor',
+    medium: 'Moderate',
+    lightGreen: 'Good',
+    darkGreen: 'Excellent'
+  };
+  return labels[rating] || 'Unknown';
+}
+
+// Create rating button with text label
 function createRatingIndicator(score) {
   const rating = getRatingFromScore(score);
+  const label = getLabelFromRating(rating);
 
-  const container = document.createElement('div');
-  container.className = 'fabric-rating-container';
+  const button = document.createElement('div');
+  button.className = `fabric-rating-button fabric-rating-${rating}`;
+  button.textContent = label;
 
-  const indicator = document.createElement('div');
-  indicator.className = `fabric-rating-indicator fabric-rating-${rating}`;
-
-  const light = document.createElement('div');
-  light.className = 'fabric-rating-light';
-  indicator.appendChild(light);
-
-  // Create hover rectangle
-  const hoverRect = document.createElement('div');
-  hoverRect.className = `fabric-hover-rectangle fabric-hover-${rating}`;
-  hoverRect.innerHTML = `
-    <div class="hover-rect-score">${score}</div>
-    <div class="hover-rect-label">Sustainability</div>
-  `;
-
-  container.appendChild(indicator);
-  container.appendChild(hoverRect);
-
-  return container;
+  return button;
 }
 
 // Add rating indicators to product cards
@@ -121,7 +123,7 @@ function addRatingsToProducts() {
 
   productCards.forEach((card, index) => {
     // Skip if already processed
-    if (card.querySelector('.fabric-rating-container')) return;
+    if (card.querySelector('.fabric-rating-button')) return;
 
     // Find the image or image container
     let imageContainer = card.querySelector(config.imageContainer);
@@ -143,8 +145,8 @@ function addRatingsToProducts() {
       imageContainer.style.position = 'relative';
     }
 
-    // Generate random score (will be replaced with API call)
-    const score = getRandomScore();
+    // Get score using calculateScore function
+    const score = getProductScore();
 
     // Create and add indicator
     const indicator = createRatingIndicator(score);

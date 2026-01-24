@@ -41,7 +41,7 @@ const FABRIC_DATABASE = {
     details: 'Similar to spandex, petroleum-based but often needed in small amounts',
     alternatives: ['Natural rubber blends']
   },
-  
+
   // Semi-synthetic (yellow)
   'viscose': {
     rating: 'yellow',
@@ -67,7 +67,7 @@ const FABRIC_DATABASE = {
     details: 'More eco-friendly than viscose, made from beech trees, but still uses chemicals',
     alternatives: ['Tencel/Lyocell']
   },
-  
+
   // Natural fibers (mostly green/yellow)
   'cotton': {
     rating: 'yellow',
@@ -117,7 +117,7 @@ const FABRIC_DATABASE = {
     details: 'Natural but production can harm silkworms, energy-intensive processing',
     alternatives: ['Peace silk', 'Tencel']
   },
-  
+
   // Innovative/Eco fibers (green)
   'tencel': {
     rating: 'green',
@@ -156,28 +156,28 @@ const FABRIC_DATABASE = {
 // Function to analyze material composition
 function analyzeMaterials(materialsText) {
   if (!materialsText) return null;
-  
+
   const text = materialsText.toLowerCase();
   const foundMaterials = [];
   let totalScore = 0;
   let worstRating = 'green';
-  
+
   // Search for each material in the text
   for (const [material, data] of Object.entries(FABRIC_DATABASE)) {
     if (text.includes(material)) {
       foundMaterials.push({ name: material, ...data });
       totalScore += data.score;
-      
+
       // Determine worst rating
       if (data.rating === 'red') worstRating = 'red';
       else if (data.rating === 'yellow' && worstRating !== 'red') worstRating = 'yellow';
     }
   }
-  
+
   if (foundMaterials.length === 0) return null;
-  
+
   const avgScore = totalScore / foundMaterials.length;
-  
+
   return {
     materials: foundMaterials,
     overallRating: worstRating,
@@ -186,6 +186,17 @@ function analyzeMaterials(materialsText) {
   };
 }
 
+// Function to calculate score from percentage inputs
+// Takes any number of percentages and converts to decimals
+function calculateScore(...percentages) {
+  // Convert percentages to decimals
+  const decimals = percentages.map(percent => percent / 100);
+
+  // TODO: Add scoring logic here
+
+  return decimals;
+}
+
 // Export for use in other scripts
-if (typeof module !== 'undefined') module.exports = { FABRIC_DATABASE, analyzeMaterials };
-if (typeof window !== 'undefined') window.fabricDB = { FABRIC_DATABASE, analyzeMaterials };
+if (typeof module !== 'undefined') module.exports = { FABRIC_DATABASE, analyzeMaterials, calculateScore };
+if (typeof window !== 'undefined') window.fabricDB = { FABRIC_DATABASE, analyzeMaterials, calculateScore };

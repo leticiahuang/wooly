@@ -1,67 +1,247 @@
-/* Rating indicator container */
-.fabric-rating-container {
+/* Rating Button - Small Rectangular Label */
+.fabric-rating-button {
   position: absolute !important;
-  bottom: 10px !important;
-  left: 10px !important;
+  bottom: 8px !important;
+  right: 8px !important;
   z-index: 1000 !important;
-}
-
-/* Rating indicator styles */
-.fabric-rating-indicator {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
   transition: transform 0.2s, box-shadow 0.2s;
+  pointer-events: auto !important;
+}
+
+/* Base badge styling (modern UI) */
+.fabric-rating-button {
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.10),
+    0 8px 20px rgba(0, 0, 0, 0.06);
+
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.fabric-rating-button:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.12),
+    0 12px 28px rgba(0, 0, 0, 0.08);
+}
+
+/* Red rating (0-40) - Poor */
+.fabric-rating-button.fabric-rating-red {
+  background-color: #FCA5A5;
+  /* rich soft red */
+  color: #7F1D1D;
+  /* deep red text */
+}
+
+/* Medium/Yellow rating (40-65) - Moderate */
+.fabric-rating-button.fabric-rating-medium {
+  background-color: #ffe386;
+  /* muted gold */
+  color: #7C4A00;
+  /* premium amber-brown text */
+}
+
+.fabric-rating-button.fabric-rating-lightGreen {
+  background-color: #BBF7D0;
+  color: #166534;
+}
+
+.fabric-rating-button.fabric-rating-darkGreen {
+  background-color: #22C55E;
+  color: #052E16;
   position: relative;
+  overflow: hidden;
 }
 
-.fabric-rating-indicator:hover {
-  transform: scale(1.15);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+/* Gold star glitter - sporadic random flashes */
+@keyframes sparkA {
+
+  0%,
+  8%,
+  15%,
+  100% {
+    opacity: 0;
+  }
+
+  5%,
+  12% {
+    opacity: 1;
+  }
 }
 
-.fabric-rating-light {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.95);
+@keyframes sparkB {
+
+  0%,
+  25%,
+  35%,
+  100% {
+    opacity: 0;
+  }
+
+  30% {
+    opacity: 1;
+  }
 }
 
-/* Color coding */
-.fabric-rating-green {
-  background: linear-gradient(135deg, #4CAF50, #66BB6A);
+@keyframes sparkC {
+
+  0%,
+  45%,
+  55%,
+  100% {
+    opacity: 0;
+  }
+
+  50% {
+    opacity: 1;
+  }
 }
 
-.fabric-rating-green .fabric-rating-light {
-  background: radial-gradient(circle at 30% 30%, #81C784, #4CAF50);
-  box-shadow: 0 0 10px rgba(76, 175, 80, 0.7), inset 0 1px 3px rgba(255, 255, 255, 0.5);
-  animation: pulse-green 2s ease-in-out infinite;
+@keyframes sparkD {
+
+  0%,
+  65%,
+  75%,
+  100% {
+    opacity: 0;
+  }
+
+  70% {
+    opacity: 1;
+  }
 }
 
-.fabric-rating-yellow {
-  background: linear-gradient(135deg, #FFC107, #FFD54F);
+@keyframes sparkE {
+
+  0%,
+  85%,
+  95%,
+  100% {
+    opacity: 0;
+  }
+
+  90% {
+    opacity: 1;
+  }
 }
 
-.fabric-rating-yellow .fabric-rating-light {
-  background: radial-gradient(circle at 30% 30%, #FFE082, #FFC107);
-  box-shadow: 0 0 10px rgba(255, 193, 7, 0.7), inset 0 1px 3px rgba(255, 255, 255, 0.5);
-  animation: pulse-yellow 2s ease-in-out infinite;
+@keyframes sparkF {
+
+  0%,
+  18%,
+  28%,
+  100% {
+    opacity: 0;
+  }
+
+  23% {
+    opacity: 1;
+  }
 }
 
-.fabric-rating-red {
-  background: linear-gradient(135deg, #F44336, #EF5350);
+@keyframes sparkG {
+
+  0%,
+  38%,
+  48%,
+  100% {
+    opacity: 0;
+  }
+
+  43% {
+    opacity: 1;
+  }
 }
 
-.fabric-rating-red .fabric-rating-light {
-  background: radial-gradient(circle at 30% 30%, #E57373, #F44336);
-  box-shadow: 0 0 10px rgba(244, 67, 54, 0.7), inset 0 1px 3px rgba(255, 255, 255, 0.5);
-  animation: pulse-red 2s ease-in-out infinite;
+@keyframes sparkH {
+
+  0%,
+  58%,
+  68%,
+  100% {
+    opacity: 0;
+  }
+
+  63% {
+    opacity: 1;
+  }
 }
+
+.fabric-rating-button.fabric-rating-darkGreen::before {
+  content: '✦';
+  position: absolute;
+  top: 3px;
+  left: 5px;
+  font-size: 7px;
+  color: #FFD700;
+  text-shadow:
+    /* Sporadic scattered stars - non-uniform placement */
+    12px -1px 0 rgba(255, 215, 0, 0.95),
+    31px 2px 0 rgba(255, 200, 50, 0.7),
+    52px -2px 0 rgba(255, 223, 100, 0.85),
+    71px 1px 0 rgba(255, 215, 0, 0.6),
+    89px -1px 0 rgba(255, 200, 50, 0.9),
+    6px 8px 0 rgba(255, 200, 50, 0.65),
+    24px 5px 0 rgba(255, 215, 0, 0.85),
+    43px 9px 0 rgba(255, 223, 100, 0.75),
+    63px 6px 0 rgba(255, 200, 50, 0.9),
+    82px 8px 0 rgba(255, 215, 0, 0.7),
+    17px 13px 0 rgba(255, 223, 100, 0.8),
+    38px 11px 0 rgba(255, 215, 0, 0.65),
+    57px 14px 0 rgba(255, 200, 50, 0.85),
+    77px 12px 0 rgba(255, 223, 100, 0.75),
+    93px 10px 0 rgba(255, 215, 0, 0.9);
+  pointer-events: none;
+}
+
+.fabric-rating-button.fabric-rating-darkGreen::after {
+  content: '★';
+  position: absolute;
+  top: 1px;
+  left: 18px;
+  font-size: 6px;
+  color: rgba(255, 215, 0, 0.85);
+  text-shadow:
+    /* More sporadic stars with varying opacity */
+    19px 3px 0 rgba(255, 223, 100, 0.75),
+    41px -2px 0 rgba(255, 200, 50, 0.9),
+    59px 4px 0 rgba(255, 215, 0, 0.6),
+    79px 1px 0 rgba(255, 223, 100, 0.8),
+    9px 10px 0 rgba(255, 200, 50, 0.7),
+    28px 7px 0 rgba(255, 223, 100, 0.9),
+    49px 11px 0 rgba(255, 215, 0, 0.75),
+    69px 8px 0 rgba(255, 200, 50, 0.85),
+    86px 6px 0 rgba(255, 215, 0, 0.65),
+    14px 15px 0 rgba(255, 215, 0, 0.85),
+    35px 13px 0 rgba(255, 223, 100, 0.7),
+    54px 16px 0 rgba(255, 200, 50, 0.8),
+    73px 14px 0 rgba(255, 215, 0, 0.9),
+    91px 12px 0 rgba(255, 223, 100, 0.65);
+  pointer-events: none;
+}
+
+
+
+
+
+
 
 /* Pulse animations */
 @keyframes pulse-green {
@@ -97,6 +277,42 @@
 
   50% {
     box-shadow: 0 0 20px rgba(244, 67, 54, 0.9), inset 0 1px 3px rgba(255, 255, 255, 0.5);
+  }
+}
+
+@keyframes pulse-medium {
+
+  0%,
+  100% {
+    box-shadow: 0 0 10px rgba(255, 152, 0, 0.7), inset 0 1px 3px rgba(255, 255, 255, 0.5);
+  }
+
+  50% {
+    box-shadow: 0 0 20px rgba(255, 152, 0, 0.9), inset 0 1px 3px rgba(255, 255, 255, 0.5);
+  }
+}
+
+@keyframes pulse-lightGreen {
+
+  0%,
+  100% {
+    box-shadow: 0 0 10px rgba(139, 195, 74, 0.7), inset 0 1px 3px rgba(255, 255, 255, 0.5);
+  }
+
+  50% {
+    box-shadow: 0 0 20px rgba(139, 195, 74, 0.9), inset 0 1px 3px rgba(255, 255, 255, 0.5);
+  }
+}
+
+@keyframes pulse-darkGreen {
+
+  0%,
+  100% {
+    box-shadow: 0 0 10px rgba(46, 125, 50, 0.7), inset 0 1px 3px rgba(255, 255, 255, 0.5);
+  }
+
+  50% {
+    box-shadow: 0 0 20px rgba(46, 125, 50, 0.9), inset 0 1px 3px rgba(255, 255, 255, 0.5);
   }
 }
 
@@ -149,6 +365,18 @@
 
 .fabric-hover-rectangle.fabric-hover-red .hover-rect-score {
   color: #F44336;
+}
+
+.fabric-hover-rectangle.fabric-hover-medium .hover-rect-score {
+  color: #F57C00;
+}
+
+.fabric-hover-rectangle.fabric-hover-lightGreen .hover-rect-score {
+  color: #7CB342;
+}
+
+.fabric-hover-rectangle.fabric-hover-darkGreen .hover-rect-score {
+  color: #2E7D32;
 }
 
 /* Rectangle content */
@@ -204,7 +432,6 @@
   border-radius: 50%;
 }
 
-/* Active pulse ring */
 .wooly-mascot-icon::before {
   content: '';
   position: absolute;
@@ -216,10 +443,13 @@
 }
 
 @keyframes wooly-pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: scale(1);
     opacity: 0.8;
   }
+
   50% {
     transform: scale(1.15);
     opacity: 0;
