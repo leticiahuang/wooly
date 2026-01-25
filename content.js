@@ -91,40 +91,46 @@ function calculateRealScore(materials) {
 
   // Use the new sophisticated scoring formula from fabricDatabase
   if (window.fabricDB && window.fabricDB.calculateBlendScore) {
-    return window.fabricDB.calculateBlendScore(materials);
+    const score = window.fabricDB.calculateBlendScore(materials);
+    console.log('Using new blend scoring formula, score:', score);
+    return score;
   }
 
-  // Fallback to simple weighted average if fabricDB not loaded
-  let totalWeightedScore = 0;
+  // Fallback to simple weighted average using FABRIC_Q if fabricDB not fully loaded
+  let totalWeightedQ = 0;
   let totalPercentage = 0;
 
   for (const mat of materials) {
     const materialName = mat.name.toLowerCase().trim();
     const percentage = mat.percentage || 100;
 
-    let score = 5; // Default moderate score
+    // Default quality for unknown fabrics
+    let q = 0.40;
 
-    if (window.fabricDB && window.fabricDB.FABRIC_DATABASE) {
-      if (window.fabricDB.FABRIC_DATABASE[materialName]) {
-        score = window.fabricDB.FABRIC_DATABASE[materialName].score;
+    if (window.fabricDB && window.fabricDB.FABRIC_Q) {
+      // Try exact match first
+      if (window.fabricDB.FABRIC_Q[materialName] !== undefined) {
+        q = window.fabricDB.FABRIC_Q[materialName];
       } else {
-        for (const [fabric, data] of Object.entries(window.fabricDB.FABRIC_DATABASE)) {
+        // Try partial match
+        for (const [fabric, quality] of Object.entries(window.fabricDB.FABRIC_Q)) {
           if (materialName.includes(fabric) || fabric.includes(materialName)) {
-            score = data.score;
+            q = quality;
             break;
           }
         }
       }
     }
 
-    totalWeightedScore += score * percentage;
+    totalWeightedQ += q * percentage;
     totalPercentage += percentage;
   }
 
   if (totalPercentage === 0) return 50;
 
-  const avgScore = totalWeightedScore / totalPercentage;
-  return Math.round(avgScore * 10);
+  // Convert quality (0-1) to score (0-100)
+  const avgQ = totalWeightedQ / totalPercentage;
+  return Math.round(avgQ * 100);
 }
 
 // Determine rating based on score using new 4-tier color system (from rectangle-popup)
@@ -134,9 +140,9 @@ function getRatingFromScore(score) {
     return window.scoreColors.getColorClassFromScore(score);
   }
   // Fallback logic matching scoreColors.js
-  if (score <= 40) return 'red';
-  if (score <= 65) return 'medium';
-  if (score <= 85) return 'lightGreen';
+  if (score < 40) return 'red';
+  if (score < 65) return 'medium';
+  if (score < 85) return 'lightGreen';
   return 'darkGreen';
 }
 

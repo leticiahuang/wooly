@@ -10,7 +10,7 @@ const SCORE_COLORS = {
         name: 'red',
         label: 'Poor',
         minScore: 0,
-        maxScore: 40,
+        maxScore: 39,
         primary: '#F44336',
         secondary: '#EF5350',
         light: '#E57373',
@@ -22,7 +22,7 @@ const SCORE_COLORS = {
         name: 'medium',
         label: 'Moderate',
         minScore: 40,
-        maxScore: 65,
+        maxScore: 64,
         primary: '#FF9800',
         secondary: '#FFB74D',
         light: '#FFCC80',
@@ -34,7 +34,7 @@ const SCORE_COLORS = {
         name: 'lightGreen',
         label: 'Good',
         minScore: 65,
-        maxScore: 85,
+        maxScore: 84,
         primary: '#8BC34A',
         secondary: '#AED581',
         light: '#C5E1A5',
@@ -65,11 +65,11 @@ function getColorFromScore(score) {
     // Clamp score to valid range
     const clampedScore = Math.max(0, Math.min(100, score));
 
-    if (clampedScore <= 40) {
+    if (clampedScore < 40) {
         return SCORE_COLORS.red;
-    } else if (clampedScore <= 65) {
+    } else if (clampedScore < 65) {
         return SCORE_COLORS.medium;
-    } else if (clampedScore <= 85) {
+    } else if (clampedScore < 85) {
         return SCORE_COLORS.lightGreen;
     } else {
         return SCORE_COLORS.darkGreen;
@@ -127,9 +127,9 @@ function applyScoreColor(element, score, options = {}) {
  */
 function getScoreRanges() {
     return [
-        { min: 0, max: 40, ...SCORE_COLORS.red },
-        { min: 40, max: 65, ...SCORE_COLORS.medium },
-        { min: 65, max: 85, ...SCORE_COLORS.lightGreen },
+        { min: 0, max: 39, ...SCORE_COLORS.red },
+        { min: 40, max: 64, ...SCORE_COLORS.medium },
+        { min: 65, max: 84, ...SCORE_COLORS.lightGreen },
         { min: 85, max: 100, ...SCORE_COLORS.darkGreen }
     ];
 }
