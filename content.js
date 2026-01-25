@@ -1,40 +1,264 @@
-// Content script that runs on shopping websites
-console.log('Fabric Rating Extension loaded');
+// Utility function to clamp values
+function clamp(val, min, max) {
+  return Math.min(max, Math.max(min, val));
+}
+
+function injectMascotToggleStyles() {
+  if (document.getElementById('wooly-toggle-style')) return;
+
+  const style = document.createElement('style');
+  style.id = 'wooly-toggle-style';
+  style.textContent = `
+    .wooly-mascot-container{
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      z-index: 10000;
+    }
+
+    /* Toggle wrapper sits ABOVE the mascot */
+    .wooly-filter-toggle-wrap{
+      position: absolute;
+      right: 0;
+      bottom: 72px; /* above icon */
+      display: flex;
+      align-items: center;
+      gap: 10px;
+
+      background: rgba(255,255,255,0.95);
+      border: 1px solid rgba(0,0,0,0.08);
+      border-radius: 999px;
+      padding: 8px 10px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+
+      opacity: 0;
+      transform: translateY(8px);
+      pointer-events: none;
+      transition: opacity 150ms ease, transform 150ms ease;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    /* Only show on hover of mascot container OR hover of toggle itself */
+    .wooly-mascot-container:hover .wooly-filter-toggle-wrap,
+    .wooly-filter-toggle-wrap:hover{
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .wooly-filter-toggle-text{
+      font-size: 12px;
+      font-weight: 600;
+      color: #1E7D3A;
+      margin: 0;
+    }
+
+    /* Actual swipe toggle */
+    .wooly-switch{
+      width: 44px;
+      height: 24px;
+      border-radius: 999px;
+      background: #CFEFD8;
+      border: 1px solid #A9E2BA;
+      position: relative;
+      cursor: pointer;
+      transition: background 150ms ease, border-color 150ms ease;
+      flex: 0 0 auto;
+    }
+
+    .wooly-switch[data-on="true"]{
+      background: #35C46A;
+      border-color: #2EAD5C;
+    }
+
+    .wooly-switch-knob{
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #fff;
+      position: absolute;
+      top: 50%;
+      left: 3px;
+      transform: translateY(-50%);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+      transition: left 150ms ease;
+    }
+
+    .wooly-switch[data-on="true"] .wooly-switch-knob{
+      left: 23px;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+
+// Show quality filter toggle modal
+function showQualityFilterToggle() {
+  // Check current filter state
+  chrome.storage.sync.get(['filterHighQualityOnly'], (data) => {
+    const isFiltered = data.filterHighQualityOnly || false;
+    
+    // Create modal overlay
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+    `;
+    
+    // Create modal box
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+      max-width: 300px;
+      text-align: center;
+    `;
+    
+    modal.innerHTML = `
+      <h2 style="margin: 0 0 16px 0; font-size: 18px; color: #333;">Quality Filter</h2>
+      <p style="margin: 0 0 20px 0; font-size: 14px; color: #666;">Show only high-quality items</p>
+      
+      <label style="display: flex; align-items: center; justify-content: center; gap: 12px; cursor: pointer; margin-bottom: 20px;">
+        <input type="checkbox" id="filterToggle" ${isFiltered ? 'checked' : ''} style="width: 20px; height: 20px; cursor: pointer;">
+        <span style="font-size: 14px; color: #333;">Show only Good & Excellent</span>
+      </label>
+      
+      <button id="closeFilterModal" style="
+        background: #4CAF50;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+      ">Done</button>
+    `;
+    
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    
+    // Handle toggle change
+    const checkbox = modal.querySelector('#filterToggle');
+    checkbox.addEventListener('change', (e) => {
+      const filterEnabled = e.target.checked;
+      chrome.storage.sync.set({ filterHighQualityOnly: filterEnabled });
+      
+      // Apply filter immediately
+      applyQualityFilter(filterEnabled);
+    });
+    
+    // Close modal
+    const closeBtn = modal.querySelector('#closeFilterModal');
+    closeBtn.addEventListener('click', () => {
+      overlay.remove();
+    });
+    
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        overlay.remove();
+      }
+    });
+  });
+}
+
+// Apply quality filter to visible products
+function applyQualityFilter(filterEnabled) {
+  const config = getSiteConfig();
+  const productCards = document.querySelectorAll(config.productCards);
+  
+  productCards.forEach(card => {
+    const ratingButton = card.querySelector('.fabric-rating-button');
+    if (ratingButton) {
+      const rating = ratingButton.className.match(/fabric-rating-(red|medium|lightGreen|darkGreen)/)?.[1];
+      const isHighQuality = rating === 'lightGreen' || rating === 'darkGreen';
+      
+      if (filterEnabled && !isHighQuality) {
+        card.style.display = 'none';
+      } else {
+        card.style.display = '';
+      }
+    }
+  });
+}
 
 // Create and add the floating mascot icon
 function createMascotIcon() {
-  // Don't add if already exists
   if (document.querySelector('.wooly-mascot-container')) return;
+
+  injectMascotToggleStyles();
 
   const container = document.createElement('div');
   container.className = 'wooly-mascot-container';
 
+  // ✅ Toggle UI (above mascot)
+  const toggleWrap = document.createElement('div');
+  toggleWrap.className = 'wooly-filter-toggle-wrap';
+  toggleWrap.innerHTML = `
+    <p class="wooly-filter-toggle-text">Only Good & Excellent</p>
+    <div class="wooly-switch" role="switch" aria-checked="false" tabindex="0" data-on="false">
+      <div class="wooly-switch-knob"></div>
+    </div>
+  `;
+
   const icon = document.createElement('div');
   icon.className = 'wooly-mascot-icon';
 
-  // Create image from mascot file
   const img = document.createElement('img');
   img.src = chrome.runtime.getURL('icons/excellent.png');
   img.alt = 'Wooly';
   icon.appendChild(img);
 
-  // Tooltip
-  const tooltip = document.createElement('div');
-  tooltip.className = 'wooly-mascot-tooltip';
-  tooltip.textContent = '🧶 Wooly is active!';
-
+  container.appendChild(toggleWrap);
   container.appendChild(icon);
-  container.appendChild(tooltip);
   document.body.appendChild(container);
 
-  // Optional: click to scroll to top or show info
-  container.addEventListener('click', () => {
-    tooltip.textContent = '✨ Checking fabric quality...';
-    setTimeout(() => {
-      tooltip.textContent = '🧶 Wooly is active!';
-    }, 2000);
+  const sw = toggleWrap.querySelector('.wooly-switch');
+
+  // Load saved state + apply immediately
+  chrome.storage.sync.get(['filterHighQualityOnly'], (data) => {
+    const enabled = !!data.filterHighQualityOnly;
+    sw.dataset.on = String(enabled);
+    sw.setAttribute('aria-checked', String(enabled));
+    applyQualityFilter(enabled);
+  });
+
+  function setSwitch(on) {
+    sw.dataset.on = String(on);
+    sw.setAttribute('aria-checked', String(on));
+    chrome.storage.sync.set({ filterHighQualityOnly: on });
+    applyQualityFilter(on);
+  }
+
+  function flip() {
+    const isOn = sw.dataset.on === 'true';
+    setSwitch(!isOn);
+  }
+
+  sw.addEventListener('click', (e) => {
+    e.stopPropagation();
+    flip();
+  });
+
+  sw.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      flip();
+    }
   });
 }
+
 
 // Site-specific selectors for different retailers
 const SITE_CONFIGS = {
@@ -495,9 +719,9 @@ function createRatingIndicator(score, productUrl, compositionData, price) {
 
   popup.innerHTML = `
     <div class="sheep-popup-wrapper">
-      <!-- Left: Big Mascot -->
-      <div class="sheep-mascot-large">
-        <img src="${mascotUrl}" alt="Wooly" />
+      <!-- Left: Big Mascot (hover to show filter) -->
+      <div class="sheep-mascot-large" style="cursor: pointer; transition: transform 0.2s;" title="Hover to filter by quality">
+        <img src="${mascotUrl}" alt="Wooly" style="width: 100%; height: 100%; object-fit: contain;" />
       </div>
 
       <!-- Right: Info Column -->
@@ -630,6 +854,25 @@ function createRatingIndicator(score, productUrl, compositionData, price) {
     hidePopup();
   });
 
+  popup.addEventListener('mouseenter', () => {
+    isOverPopup = true;
+    if (hideTimeout) clearTimeout(hideTimeout);
+  });
+
+  popup.addEventListener('mouseleave', () => {
+    isOverPopup = false;
+    hidePopup();
+  });
+
+  // Add hover handler to mascot for quality filter toggle
+  const mascotDiv = popup.querySelector('.sheep-mascot-large');
+  if (mascotDiv) {
+    mascotDiv.addEventListener('mouseenter', (e) => {
+      e.stopPropagation();
+      // Just show tooltip on hover, don't show filter
+    });
+  }
+
   container.appendChild(button);
 
   return container;
@@ -644,6 +887,13 @@ async function addRatingsToProducts() {
   console.log(`Found ${productCards.length} product cards`);
 
   let addedCount = 0;
+
+  // Check if quality filter is enabled
+  const filterData = await new Promise((resolve) => {
+    chrome.storage.sync.get(['filterHighQualityOnly'], (data) => {
+      resolve(data.filterHighQualityOnly || false);
+    });
+  });
 
   for (const card of productCards) {
     // Skip if already processed
@@ -777,6 +1027,12 @@ async function addRatingsToProducts() {
     // Create and add indicator with REAL score and value score (combined UI)
     const indicator = createRatingIndicator(score, productUrl, compositionData, price);
     imageContainer.appendChild(indicator);
+
+    // Apply quality filter if enabled
+    const rating = getRatingFromScore(score);
+    if (filterData && rating !== 'lightGreen' && rating !== 'darkGreen') {
+      card.style.display = 'none';
+    }
 
     addedCount++;
   }
