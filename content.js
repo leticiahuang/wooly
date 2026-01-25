@@ -102,10 +102,10 @@ function getLabelFromRating(rating) {
 // Get dynamic slogan from rating
 function getSloganFromRating(rating) {
   const slogans = {
-    red: "Don't get fleeced! <span class=\"sheep-emoji\">🙅</span>",
-    medium: "This fabric is a bit... <br> fuzzy <span class=\"sheep-emoji\">🤔</span>",
-    lightGreen: "Not baaa-d at all <span class=\"sheep-emoji\">🐑</span>",
-    darkGreen: "Shear perfection! <span class=\"sheep-emoji\">✨</span>"
+    red: "Don't get fleeced! 🙅",
+    medium: "This fabric is a bit...\n fuzzy 🤔",
+    lightGreen: "Not baaa-d at all 🐑",
+    darkGreen: "Shear perfection! ✨"
   };
   return slogans[rating] || "Check the details below!";
 }
@@ -211,17 +211,9 @@ function createRatingIndicator(score) {
   const showPopup = () => {
     if (hideTimeout) clearTimeout(hideTimeout);
 
-    // Position logic
+    // Position the popup relative to the button
     const buttonRect = button.getBoundingClientRect();
     popup.style.position = 'fixed';
-
-    // Position to the left of the button by default, or right if space allows
-    // For now, let's hover above-left
-    popup.style.left = `${buttonRect.left - 300}px`; // Shift left
-    popup.style.top = `${buttonRect.top - 150}px`;   // Shift up
-
-    // Better positioning logic could go here, but stick to simple for now
-    // Actually, let's center it above the mouse/button more intelligently
     popup.style.left = `${buttonRect.left - 280}px`;
     popup.style.top = `${buttonRect.top - 50}px`;
 
@@ -307,7 +299,7 @@ function addRatingsToProducts() {
       imageContainer.style.position = 'relative';
     }
 
-    // Get score using calculateScore function
+    // Get score for this product
     const score = getProductScore();
 
     // Create and add indicator

@@ -11,48 +11,48 @@ const SCORE_COLORS = {
         label: 'Poor',
         minScore: 0,
         maxScore: 40,
-        primary: '#F44336',
-        secondary: '#EF5350',
-        light: '#E57373',
-        gradient: 'linear-gradient(135deg, #F44336, #EF5350)',
-        glow: 'rgba(244, 67, 54, 0.7)',
-        textColor: '#F44336'
+        primary: '#FCA5A5',
+        secondary: '#FCA5A5',
+        light: '#FCA5A5',
+        gradient: 'linear-gradient(135deg, #FCA5A5, #FCA5A5)',
+        glow: 'rgba(252, 165, 165, 0.7)',
+        textColor: '#FCA5A5'
     },
     medium: {
         name: 'medium',
         label: 'Moderate',
         minScore: 40,
         maxScore: 65,
-        primary: '#FF9800',
-        secondary: '#FFB74D',
-        light: '#FFCC80',
-        gradient: 'linear-gradient(135deg, #FF9800, #FFB74D)',
-        glow: 'rgba(255, 152, 0, 0.7)',
-        textColor: '#F57C00'
+        primary: '#ffe386',
+        secondary: '#ffe386',
+        light: '#ffe386',
+        gradient: 'linear-gradient(135deg, #ffe386, #ffe386)',
+        glow: 'rgba(255, 227, 134, 0.7)',
+        textColor: '#ffe386'
     },
     lightGreen: {
         name: 'lightGreen',
         label: 'Good',
         minScore: 65,
         maxScore: 85,
-        primary: '#8BC34A',
-        secondary: '#AED581',
-        light: '#C5E1A5',
-        gradient: 'linear-gradient(135deg, #8BC34A, #AED581)',
-        glow: 'rgba(139, 195, 74, 0.7)',
-        textColor: '#7CB342'
+        primary: '#BBF7D0',
+        secondary: '#BBF7D0',
+        light: '#BBF7D0',
+        gradient: 'linear-gradient(135deg, #BBF7D0, #BBF7D0)',
+        glow: 'rgba(187, 247, 208, 0.7)',
+        textColor: '#BBF7D0'
     },
     darkGreen: {
         name: 'darkGreen',
         label: 'Excellent',
         minScore: 85,
         maxScore: 100,
-        primary: '#2E7D32',
-        secondary: '#43A047',
-        light: '#66BB6A',
-        gradient: 'linear-gradient(135deg, #2E7D32, #43A047)',
-        glow: 'rgba(46, 125, 50, 0.7)',
-        textColor: '#2E7D32'
+        primary: '#22C55E',
+        secondary: '#22C55E',
+        light: '#22C55E',
+        gradient: 'linear-gradient(135deg, #22C55E, #22C55E)',
+        glow: 'rgba(34, 197, 94, 0.7)',
+        textColor: '#22C55E'
     }
 };
 

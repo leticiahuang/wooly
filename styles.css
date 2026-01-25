@@ -12,42 +12,26 @@
 /* -------------------------------------------------------------------------
    1. SMALL RATING BUTTON (The pill on the product image)
    ------------------------------------------------------------------------- */
-/* Rating Button - Small Rectangular Label */
 .fabric-rating-button {
   position: absolute !important;
   bottom: 8px !important;
   right: 8px !important;
   z-index: 1000 !important;
-  padding: 4px 10px;
-  border-radius: 4px;
-  /* overridden below */
+  padding: 6px 10px;
+  border-radius: 999px;
   font-size: 11px;
   font-weight: 600;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-  transition: transform 0.2s, box-shadow 0.2s;
-  pointer-events: auto !important;
-}
-
-/* Base badge styling (modern UI) */
-.fabric-rating-button {
-  border-radius: 999px;
-  padding: 6px 10px;
-  font-weight: 600;
   letter-spacing: 0.2px;
-
+  cursor: pointer;
   border: 1px solid rgba(0, 0, 0, 0.08);
-  /* restored border */
   background: white;
-  /* default fallback */
-
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
-
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
   transition: transform 120ms ease, box-shadow 120ms ease;
+  pointer-events: auto !important;
 }
 
 .fabric-rating-button:hover {
@@ -60,26 +44,18 @@
 /* Red rating (0-40) - Poor */
 .fabric-rating-button.fabric-rating-red {
   background-color: #FCA5A5;
-  /* rich soft red */
   color: #7F1D1D;
-  /* deep red text */
-  border-bottom: none;
-  /* remove new border */
 }
 
 /* Medium/Yellow rating (40-65) - Moderate */
 .fabric-rating-button.fabric-rating-medium {
   background-color: #ffe386;
-  /* muted gold */
   color: #7C4A00;
-  /* premium amber-brown text */
-  border-bottom: none;
 }
 
 .fabric-rating-button.fabric-rating-lightGreen {
   background-color: #BBF7D0;
   color: #166534;
-  border-bottom: none;
 }
 
 .fabric-rating-button.fabric-rating-darkGreen {
@@ -87,7 +63,6 @@
   color: #052E16;
   position: relative;
   overflow: visible;
-  border-bottom: none;
 }
 
 /* Star decorations - ONLY for Excellent (darkGreen) */
@@ -184,7 +159,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBviewQm94PSIwIDAgMTAwIDEwMCIgbInBpY2l0eT0iMC4wNSI+PHBhdGggZD0iTTAgMGgxMDB2MTAwSDB6IiBmaWxsPSIjZmZmIi8+PC9zdmc+');
+  background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100" opacity="0.05"%3E%3Cpath d="M0 0h100v100H0z" fill="%23ffffff"/%3E%3C/svg%3E');
   /* Subtle noise */
   opacity: 0.3;
   pointer-events: none;
@@ -230,6 +205,75 @@
   opacity: 0.9;
 }
 
+/* Centered variants */
+.centered-header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.centered-score {
+  align-items: center;
+  text-align: center;
+}
+
+/* Circular Score Widget */
+.sheep-circular-widget {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  margin: 16px auto 0;
+}
+
+.sheep-circle-svg {
+  transform: rotate(-90deg);
+}
+
+.score-track {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.3);
+  stroke-width: 8;
+}
+
+.score-fill {
+  fill: none;
+  stroke-width: 8;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.5s ease;
+}
+
+.score-fill.rating-red {
+  stroke: #FCA5A5;
+}
+
+.score-fill.rating-medium {
+  stroke: #ffe386;
+}
+
+.score-fill.rating-lightGreen {
+  stroke: #BBF7D0;
+}
+
+.score-fill.rating-darkGreen {
+  stroke: #22C55E;
+}
+
+.sheep-circle-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  line-height: 1;
+}
+
+.sheep-score-max {
+  font-size: 16px;
+  font-weight: 600;
+  color: #166534;
+  opacity: 0.7;
+}
+
 /* --- Content Section (Fabric Data) --- */
 .sheep-content-body {
   padding: 24px;
@@ -243,6 +287,7 @@
   color: #15803D;
   margin-bottom: 12px;
   line-height: 1.4;
+  white-space: pre-line;
 }
 
 /* Input/Data Box */
@@ -256,15 +301,30 @@
   border: 1px solid #DCFCE7;
 }
 
+.sheep-fabric-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #14532D;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
 .sheep-fabric-row {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 4px;
   padding: 8px 4px;
   border-bottom: 1px dashed #E5E7EB;
 }
 
 .sheep-fabric-row:last-child {
   border-bottom: none;
+}
+
+.sheep-fabric-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .sheep-fabric-name {
@@ -277,6 +337,21 @@
   color: #111827;
   font-weight: 800;
   font-size: 14px;
+}
+
+.sheep-fabric-bar-track {
+  width: 100%;
+  height: 6px;
+  background-color: #E5E7EB;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.sheep-fabric-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #22C55E, #16A34A);
+  border-radius: 3px;
+  transition: width 0.3s ease;
 }
 
 /* Save/Action Button */
