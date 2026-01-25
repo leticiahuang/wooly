@@ -79,10 +79,16 @@ function getSiteConfig() {
   };
 }
 
-// Calculate real score from materials using fabricDatabase (from diego)
+// Calculate real score from materials using the new blend scoring formula
 function calculateRealScore(materials) {
   if (!materials || materials.length === 0) return null;
 
+  // Use the new sophisticated scoring formula from fabricDatabase
+  if (window.fabricDB && window.fabricDB.calculateBlendScore) {
+    return window.fabricDB.calculateBlendScore(materials);
+  }
+
+  // Fallback to simple weighted average if fabricDB not loaded
   let totalWeightedScore = 0;
   let totalPercentage = 0;
 
@@ -90,15 +96,12 @@ function calculateRealScore(materials) {
     const materialName = mat.name.toLowerCase().trim();
     const percentage = mat.percentage || 100;
 
-    // Look up in fabric database
     let score = 5; // Default moderate score
 
     if (window.fabricDB && window.fabricDB.FABRIC_DATABASE) {
-      // Try exact match first
       if (window.fabricDB.FABRIC_DATABASE[materialName]) {
         score = window.fabricDB.FABRIC_DATABASE[materialName].score;
       } else {
-        // Try partial match
         for (const [fabric, data] of Object.entries(window.fabricDB.FABRIC_DATABASE)) {
           if (materialName.includes(fabric) || fabric.includes(materialName)) {
             score = data.score;
@@ -108,14 +111,12 @@ function calculateRealScore(materials) {
       }
     }
 
-    // Weighted by percentage
     totalWeightedScore += score * percentage;
     totalPercentage += percentage;
   }
 
   if (totalPercentage === 0) return 50;
 
-  // Convert score (1-10) to percentage (0-100)
   const avgScore = totalWeightedScore / totalPercentage;
   return Math.round(avgScore * 10);
 }
@@ -168,7 +169,15 @@ function parseComposition(text) {
     'viscose', 'rayon', 'modal', 'tencel', 'lyocell', 'spandex', 'elastane',
     'acrylic', 'cashmere', 'leather', 'suede', 'denim', 'fleece', 'velvet',
     'satin', 'chiffon', 'tweed', 'corduroy', 'jersey', 'organza', 'lace',
-    'recycled polyester', 'organic cotton', 'recycled cotton', 'bamboo'
+    'recycled polyester', 'organic cotton', 'recycled cotton', 'bamboo',
+    'merino', 'polyamide', 'flax'
+  ];
+
+  // Blacklist of words that are NOT materials (labels, headers, etc.)
+  const nonMaterials = [
+    'composition', 'material', 'materials', 'fabric', 'fabrics', 'content',
+    'care', 'washing', 'instructions', 'made', 'origin', 'country', 'shell',
+    'lining', 'outer', 'inner', 'main', 'body', 'exterior', 'interior'
   ];
 
   // Clean up the text
@@ -181,11 +190,15 @@ function parseComposition(text) {
     const percentage = parseInt(match[1]);
     const material = match[2].trim().toLowerCase().replace(/[,\.\s]+$/, '');
     const key = material.split(/\s+/)[0]; // First word for deduplication
-    
+
     if (percentage > 0 && percentage <= 100 && !seen.has(key)) {
-      // Check if it's a known material or contains a known material
-      const isKnown = knownMaterials.some(m => material.includes(m) || m.includes(material.split(/\s+/)[0]));
-      if (isKnown || material.length <= 15) {
+      // Skip if it's a non-material word (label, header, etc.)
+      const isBlacklisted = nonMaterials.some(nm => material.includes(nm) || nm.includes(key));
+      if (isBlacklisted) continue;
+
+      // Check if it's a known material
+      const isKnown = knownMaterials.some(m => material.includes(m) || m.includes(key));
+      if (isKnown) {
         materials.push({ name: material, percentage });
         seen.add(key);
       }
@@ -198,10 +211,14 @@ function parseComposition(text) {
     const material = match[1].trim().toLowerCase().replace(/[,\.\s]+$/, '');
     const percentage = parseInt(match[2]);
     const key = material.split(/\s+/)[0];
-    
+
     if (percentage > 0 && percentage <= 100 && !seen.has(key)) {
-      const isKnown = knownMaterials.some(m => material.includes(m) || m.includes(material.split(/\s+/)[0]));
-      if (isKnown || material.length <= 15) {
+      // Skip if it's a non-material word
+      const isBlacklisted = nonMaterials.some(nm => material.includes(nm) || nm.includes(key));
+      if (isBlacklisted) continue;
+
+      const isKnown = knownMaterials.some(m => material.includes(m) || m.includes(key));
+      if (isKnown) {
         materials.push({ name: material, percentage });
         seen.add(key);
       }
