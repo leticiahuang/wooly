@@ -10,18 +10,12 @@
     "tabs"
   ],
   "host_permissions": [
-    "https://www.zara.com/*",
-    "https://www.hm.com/*",
-    "https://www.uniqlo.com/*",
-    "https://www.asos.com/*"
+"<all_urls>"
   ],
   "content_scripts": [
     {
       "matches": [
-        "https://www.zara.com/*",
-        "https://www.hm.com/*",
-        "https://www.uniqlo.com/*",
-        "https://www.asos.com/*"
+ "<all_urls>"
       ],
       "js": [
         "fabricDatabase.js",
