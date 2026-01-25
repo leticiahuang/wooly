@@ -21,7 +21,7 @@ function createMascotIcon() {
   // Tooltip
   const tooltip = document.createElement('div');
   tooltip.className = 'wooly-mascot-tooltip';
-  tooltip.textContent = '🧶 Click: Settings | Double-click: AI Chat';
+  tooltip.textContent = 'Click: Filters | Double-click: AI Chat';
 
   container.appendChild(icon);
   container.appendChild(tooltip);
@@ -45,7 +45,17 @@ function createMascotIcon() {
         const settingsModal = document.querySelector('.wooly-settings-modal');
         const aiModal = document.querySelector('.wooly-ai-modal');
         if (aiModal) aiModal.classList.remove('visible');
-        if (settingsModal) settingsModal.classList.toggle('visible');
+
+        // Toggle Settings
+        if (settingsModal) {
+          const isVisible = settingsModal.classList.toggle('visible');
+          // Start Active State logic
+          if (isVisible) {
+            container.classList.add('wooly-active');
+          } else {
+            container.classList.remove('wooly-active');
+          }
+        }
         clickCount = 0;
       }, 250);
     } else if (clickCount === 2) {
@@ -53,9 +63,33 @@ function createMascotIcon() {
       clearTimeout(clickTimer);
       const settingsModal = document.querySelector('.wooly-settings-modal');
       const aiModal = document.querySelector('.wooly-ai-modal');
-      if (settingsModal) settingsModal.classList.remove('visible');
-      if (aiModal) aiModal.classList.toggle('visible');
+
+      if (settingsModal) {
+        settingsModal.classList.remove('visible');
+      }
+
+      // Toggle AI Chat
+      if (aiModal) {
+        const isVisible = aiModal.classList.toggle('visible');
+        // Start Active State logic
+        if (isVisible) {
+          container.classList.add('wooly-active');
+        } else {
+          container.classList.remove('wooly-active');
+        }
+      }
       clickCount = 0;
+    }
+  });
+
+  // Also listen for close events from the modals to remove 'wooly-active'
+  document.body.addEventListener('click', (e) => {
+    // If closing via close button
+    if (e.target.classList.contains('wooly-settings-close') || e.target.closest('.wooly-settings-close')) {
+      container.classList.remove('wooly-active');
+    }
+    if (e.target.classList.contains('wooly-ai-close') || e.target.closest('.wooly-ai-close')) {
+      container.classList.remove('wooly-active');
     }
   });
 }
@@ -1041,6 +1075,9 @@ async function addRatingsToProducts() {
     // Create and add indicator with REAL score and value score (combined UI)
     const indicator = createRatingIndicator(score, productUrl, compositionData, price);
     imageContainer.appendChild(indicator);
+
+    // Mark the card as processed so we can find it for filtering
+    card.dataset.woolyProcessed = 'true';
 
     addedCount++;
   }

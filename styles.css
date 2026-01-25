@@ -430,8 +430,13 @@
   bottom: 100%;
   right: 0;
   margin-bottom: 12px;
-  background: #1E293B;
-  color: white;
+  /* Light Mode Styles */
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #334155;
+  /* Slate 700 */
+  border: 1px solid rgba(255, 255, 255, 0.8);
   padding: 8px 12px;
   border-radius: 8px;
   font-size: 13px;
@@ -447,6 +452,13 @@
 .wooly-mascot-container:hover .wooly-mascot-tooltip {
   opacity: 1;
   transform: translateY(0);
+}
+
+/* Hide tooltip when active (modal open) */
+.wooly-mascot-container.wooly-active .wooly-mascot-tooltip {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
 }
 
 /* -------------------------------------------------------------------------
@@ -687,6 +699,8 @@
   flex-direction: column;
   flex: 1;
   overflow: hidden;
+  position: relative;
+  z-index: 1;
 }
 
 .wooly-ai-messages {

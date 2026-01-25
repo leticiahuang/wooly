@@ -6,11 +6,11 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('notifyToggle').checked = data.showNotifications !== false;
     document.getElementById('ratedCount').textContent = data.ratedCount || 0;
   });
-  
+
   // Enable toggle
   document.getElementById('enableToggle').addEventListener('change', (e) => {
     chrome.storage.sync.set({ enabled: e.target.checked });
-    
+
     // Reload content scripts if toggled
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (tabs[0]) {
@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   });
-  
+
   // Notifications toggle
   document.getElementById('notifyToggle').addEventListener('change', (e) => {
     chrome.storage.sync.set({ showNotifications: e.target.checked });
