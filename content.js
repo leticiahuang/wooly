@@ -1,264 +1,157 @@
-// Utility function to clamp values
-function clamp(val, min, max) {
-  return Math.min(max, Math.max(min, val));
-}
-
-function injectMascotToggleStyles() {
-  if (document.getElementById('wooly-toggle-style')) return;
-
-  const style = document.createElement('style');
-  style.id = 'wooly-toggle-style';
-  style.textContent = `
-    .wooly-mascot-container{
-      position: fixed;
-      right: 18px;
-      bottom: 18px;
-      z-index: 10000;
-    }
-
-    /* Toggle wrapper sits ABOVE the mascot */
-    .wooly-filter-toggle-wrap{
-      position: absolute;
-      right: 0;
-      bottom: 72px; /* above icon */
-      display: flex;
-      align-items: center;
-      gap: 10px;
-
-      background: rgba(255,255,255,0.95);
-      border: 1px solid rgba(0,0,0,0.08);
-      border-radius: 999px;
-      padding: 8px 10px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.18);
-
-      opacity: 0;
-      transform: translateY(8px);
-      pointer-events: none;
-      transition: opacity 150ms ease, transform 150ms ease;
-      user-select: none;
-      white-space: nowrap;
-    }
-
-    /* Only show on hover of mascot container OR hover of toggle itself */
-    .wooly-mascot-container:hover .wooly-filter-toggle-wrap,
-    .wooly-filter-toggle-wrap:hover{
-      opacity: 1;
-      transform: translateY(0);
-      pointer-events: auto;
-    }
-
-    .wooly-filter-toggle-text{
-      font-size: 12px;
-      font-weight: 600;
-      color: #1E7D3A;
-      margin: 0;
-    }
-
-    /* Actual swipe toggle */
-    .wooly-switch{
-      width: 44px;
-      height: 24px;
-      border-radius: 999px;
-      background: #CFEFD8;
-      border: 1px solid #A9E2BA;
-      position: relative;
-      cursor: pointer;
-      transition: background 150ms ease, border-color 150ms ease;
-      flex: 0 0 auto;
-    }
-
-    .wooly-switch[data-on="true"]{
-      background: #35C46A;
-      border-color: #2EAD5C;
-    }
-
-    .wooly-switch-knob{
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      background: #fff;
-      position: absolute;
-      top: 50%;
-      left: 3px;
-      transform: translateY(-50%);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.18);
-      transition: left 150ms ease;
-    }
-
-    .wooly-switch[data-on="true"] .wooly-switch-knob{
-      left: 23px;
-    }
-  `;
-  document.head.appendChild(style);
-}
-
-
-// Show quality filter toggle modal
-function showQualityFilterToggle() {
-  // Check current filter state
-  chrome.storage.sync.get(['filterHighQualityOnly'], (data) => {
-    const isFiltered = data.filterHighQualityOnly || false;
-    
-    // Create modal overlay
-    const overlay = document.createElement('div');
-    overlay.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 10000;
-    `;
-    
-    // Create modal box
-    const modal = document.createElement('div');
-    modal.style.cssText = `
-      background: white;
-      border-radius: 12px;
-      padding: 24px;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-      max-width: 300px;
-      text-align: center;
-    `;
-    
-    modal.innerHTML = `
-      <h2 style="margin: 0 0 16px 0; font-size: 18px; color: #333;">Quality Filter</h2>
-      <p style="margin: 0 0 20px 0; font-size: 14px; color: #666;">Show only high-quality items</p>
-      
-      <label style="display: flex; align-items: center; justify-content: center; gap: 12px; cursor: pointer; margin-bottom: 20px;">
-        <input type="checkbox" id="filterToggle" ${isFiltered ? 'checked' : ''} style="width: 20px; height: 20px; cursor: pointer;">
-        <span style="font-size: 14px; color: #333;">Show only Good & Excellent</span>
-      </label>
-      
-      <button id="closeFilterModal" style="
-        background: #4CAF50;
-        color: white;
-        border: none;
-        padding: 10px 20px;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 14px;
-        font-weight: 500;
-      ">Done</button>
-    `;
-    
-    overlay.appendChild(modal);
-    document.body.appendChild(overlay);
-    
-    // Handle toggle change
-    const checkbox = modal.querySelector('#filterToggle');
-    checkbox.addEventListener('change', (e) => {
-      const filterEnabled = e.target.checked;
-      chrome.storage.sync.set({ filterHighQualityOnly: filterEnabled });
-      
-      // Apply filter immediately
-      applyQualityFilter(filterEnabled);
-    });
-    
-    // Close modal
-    const closeBtn = modal.querySelector('#closeFilterModal');
-    closeBtn.addEventListener('click', () => {
-      overlay.remove();
-    });
-    
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) {
-        overlay.remove();
-      }
-    });
-  });
-}
-
-// Apply quality filter to visible products
-function applyQualityFilter(filterEnabled) {
-  const config = getSiteConfig();
-  const productCards = document.querySelectorAll(config.productCards);
-  
-  productCards.forEach(card => {
-    const ratingButton = card.querySelector('.fabric-rating-button');
-    if (ratingButton) {
-      const rating = ratingButton.className.match(/fabric-rating-(red|medium|lightGreen|darkGreen)/)?.[1];
-      const isHighQuality = rating === 'lightGreen' || rating === 'darkGreen';
-      
-      if (filterEnabled && !isHighQuality) {
-        card.style.display = 'none';
-      } else {
-        card.style.display = '';
-      }
-    }
-  });
-}
+// Content script that runs on shopping websites
+console.log('Fabric Rating Extension loaded');
 
 // Create and add the floating mascot icon
+// Create and add the floating mascot icon
 function createMascotIcon() {
+  // Don't add if already exists
   if (document.querySelector('.wooly-mascot-container')) return;
-
-  injectMascotToggleStyles();
 
   const container = document.createElement('div');
   container.className = 'wooly-mascot-container';
 
-  // ✅ Toggle UI (above mascot)
-  const toggleWrap = document.createElement('div');
-  toggleWrap.className = 'wooly-filter-toggle-wrap';
-  toggleWrap.innerHTML = `
-    <p class="wooly-filter-toggle-text">Only Good & Excellent</p>
-    <div class="wooly-switch" role="switch" aria-checked="false" tabindex="0" data-on="false">
-      <div class="wooly-switch-knob"></div>
-    </div>
-  `;
-
   const icon = document.createElement('div');
   icon.className = 'wooly-mascot-icon';
 
+  // Create image from mascot file
   const img = document.createElement('img');
   img.src = chrome.runtime.getURL('icons/excellent.png');
   img.alt = 'Wooly';
   icon.appendChild(img);
 
-  container.appendChild(toggleWrap);
+  // Check for existing popup
+  let popup = container.querySelector('.wooly-mascot-popup');
+  if (!popup) {
+    popup = createMascotPopup();
+    container.appendChild(popup);
+  }
+
+  // Click to toggle popup
+  icon.addEventListener('click', (e) => {
+    e.stopPropagation(); // prevent closing immediately
+    popup.classList.toggle('visible');
+  });
+
+  // Close popup when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!container.contains(e.target) && !popup.contains(e.target)) {
+      popup.classList.remove('visible');
+    }
+  });
+
   container.appendChild(icon);
   document.body.appendChild(container);
 
-  const sw = toggleWrap.querySelector('.wooly-switch');
-
-  // Load saved state + apply immediately
-  chrome.storage.sync.get(['filterHighQualityOnly'], (data) => {
-    const enabled = !!data.filterHighQualityOnly;
-    sw.dataset.on = String(enabled);
-    sw.setAttribute('aria-checked', String(enabled));
-    applyQualityFilter(enabled);
-  });
-
-  function setSwitch(on) {
-    sw.dataset.on = String(on);
-    sw.setAttribute('aria-checked', String(on));
-    chrome.storage.sync.set({ filterHighQualityOnly: on });
-    applyQualityFilter(on);
-  }
-
-  function flip() {
-    const isOn = sw.dataset.on === 'true';
-    setSwitch(!isOn);
-  }
-
-  sw.addEventListener('click', (e) => {
-    e.stopPropagation();
-    flip();
-  });
-
-  sw.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      flip();
-    }
-  });
+  // Initial update of filters based on default state
+  updateFilters();
 }
 
+// Create the mascot popup menu
+// Create the mascot popup menu
+function createMascotPopup() {
+  const popup = document.createElement('div');
+  popup.className = 'wooly-mascot-popup';
+
+  // Filter Options
+  const filters = [
+    { id: 'filter-green', label: 'Excellent / Good', dotClass: '', type: 'green', toggleClass: 'toggle-green' },
+    { id: 'filter-medium', label: 'Moderate', dotClass: '', type: 'medium', toggleClass: 'toggle-medium' },
+    { id: 'filter-red', label: 'Poor', dotClass: '', type: 'red', toggleClass: 'toggle-red' }
+  ];
+
+  // Load saved state or default to true
+  const filterState = {
+    green: true,
+    medium: true,
+    red: true
+  };
+
+  filters.forEach(f => {
+    const row = document.createElement('div');
+    row.className = 'filter-row';
+
+    // Label side
+    const labelGroup = document.createElement('div');
+    labelGroup.className = 'filter-label';
+
+    const text = document.createElement('span');
+    text.textContent = f.label;
+
+    labelGroup.appendChild(text);
+
+    // Toggle side
+    const toggle = document.createElement('input');
+    toggle.type = 'checkbox';
+    toggle.className = `filter-toggle ${f.toggleClass}`;
+    toggle.checked = filterState[f.type];
+    toggle.dataset.filterType = f.type;
+
+    // Event listener
+    toggle.addEventListener('change', (e) => {
+      filterState[f.type] = e.target.checked;
+      updateFilters(filterState);
+    });
+
+    // Clicking row toggles checkbox
+    row.addEventListener('click', (e) => {
+      if (e.target !== toggle) {
+        toggle.checked = !toggle.checked;
+        toggle.dispatchEvent(new Event('change'));
+      }
+    });
+
+    row.appendChild(labelGroup);
+    row.appendChild(toggle);
+    popup.appendChild(row);
+  });
+
+  return popup;
+}
+
+// Update visibility of rating indicators based on filters
+// Update visibility of rating indicators based on filters
+function updateFilters(state) {
+  if (!state) {
+    state = {
+      green: true,
+      medium: true,
+      red: true
+    };
+    const greenToggle = document.querySelector('input[data-filter-type="green"]');
+    if (greenToggle) {
+      state.green = greenToggle.checked;
+      state.medium = document.querySelector('input[data-filter-type="medium"]').checked;
+      state.red = document.querySelector('input[data-filter-type="red"]').checked;
+    }
+  }
+
+  // Select ALL products that we have rated
+  const allProducts = document.querySelectorAll('.wooly-product-card');
+
+  allProducts.forEach(card => {
+    const ratingType = card.dataset.woolyRating; // 'red', 'medium', 'lightGreen', 'darkGreen'
+    let isVisible = false;
+
+    if (ratingType === 'darkGreen' || ratingType === 'lightGreen') {
+      isVisible = state.green;
+    } else if (ratingType === 'medium') {
+      isVisible = state.medium;
+    } else if (ratingType === 'red') {
+      isVisible = state.red;
+    }
+
+    // Hide/Show the ENTIRE CARD
+    if (isVisible) {
+      card.style.display = ''; // Reset to default
+      card.style.opacity = '1';
+      card.style.pointerEvents = 'auto';
+    } else {
+      card.style.display = 'none';
+    }
+  });
+
+  console.log('Filters updated:', state);
+}
 
 // Site-specific selectors for different retailers
 const SITE_CONFIGS = {
@@ -719,9 +612,9 @@ function createRatingIndicator(score, productUrl, compositionData, price) {
 
   popup.innerHTML = `
     <div class="sheep-popup-wrapper">
-      <!-- Left: Big Mascot (hover to show filter) -->
-      <div class="sheep-mascot-large" style="cursor: pointer; transition: transform 0.2s;" title="Hover to filter by quality">
-        <img src="${mascotUrl}" alt="Wooly" style="width: 100%; height: 100%; object-fit: contain;" />
+      <!-- Left: Big Mascot -->
+      <div class="sheep-mascot-large">
+        <img src="${mascotUrl}" alt="Wooly" />
       </div>
 
       <!-- Right: Info Column -->
@@ -854,25 +747,6 @@ function createRatingIndicator(score, productUrl, compositionData, price) {
     hidePopup();
   });
 
-  popup.addEventListener('mouseenter', () => {
-    isOverPopup = true;
-    if (hideTimeout) clearTimeout(hideTimeout);
-  });
-
-  popup.addEventListener('mouseleave', () => {
-    isOverPopup = false;
-    hidePopup();
-  });
-
-  // Add hover handler to mascot for quality filter toggle
-  const mascotDiv = popup.querySelector('.sheep-mascot-large');
-  if (mascotDiv) {
-    mascotDiv.addEventListener('mouseenter', (e) => {
-      e.stopPropagation();
-      // Just show tooltip on hover, don't show filter
-    });
-  }
-
   container.appendChild(button);
 
   return container;
@@ -888,16 +762,9 @@ async function addRatingsToProducts() {
 
   let addedCount = 0;
 
-  // Check if quality filter is enabled
-  const filterData = await new Promise((resolve) => {
-    chrome.storage.sync.get(['filterHighQualityOnly'], (data) => {
-      resolve(data.filterHighQualityOnly || false);
-    });
-  });
-
   for (const card of productCards) {
     // Skip if already processed
-    if (card.querySelector('.fabric-rating-container')) continue;
+    if (card.classList.contains('wooly-product-card')) continue;
 
     // Find the product link
     let productLink = card.querySelector(config.productLink);
@@ -1028,11 +895,9 @@ async function addRatingsToProducts() {
     const indicator = createRatingIndicator(score, productUrl, compositionData, price);
     imageContainer.appendChild(indicator);
 
-    // Apply quality filter if enabled
-    const rating = getRatingFromScore(score);
-    if (filterData && rating !== 'lightGreen' && rating !== 'darkGreen') {
-      card.style.display = 'none';
-    }
+    // MARK CARD FOR FILTERING
+    card.classList.add('wooly-product-card');
+    card.dataset.woolyRating = getRatingFromScore(score); // 'red', 'medium', etc.
 
     addedCount++;
   }

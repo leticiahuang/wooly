@@ -15,28 +15,28 @@
 const FABRIC_Q = {
   // Premium naturals
   "cashmere": 0.95,
-  "merino": 0.88,
+  "merino": 0.90,
   "wool": 0.85,
-  "silk": 0.87,
+  "silk": 0.88,
 
   // Plant naturals
   "linen": 0.82,
   "flax": 0.82,
   "hemp": 0.80,
   "cotton": 0.72,
-  "organic cotton": 0.85,
+  "organic cotton": 0.75,
 
   // Regenerated cellulose
   "viscose": 0.62,
   "rayon": 0.62,
-  "lyocell": 0.70,
-  "tencel": 0.70,
-  "modal": 0.68,
+  "lyocell": 0.73,
+  "tencel": 0.73,
+  "modal": 0.70,
 
   // Synthetics
-  "nylon": 0.55,
-  "polyamide": 0.55,
-  "polyester": 0.40,
+  "nylon": 0.58,
+  "polyamide": 0.58,
+  "polyester": 0.45,
   "acrylic": 0.30,
 
   // Stretch
@@ -44,8 +44,8 @@ const FABRIC_Q = {
   "spandex": 0.35,
 
   // Recycled
-  "recycled polyester": 0.55,
-  "recycled cotton": 0.80
+  "recycled polyester": 0.43,
+  "recycled cotton": 0.68
 };
 
 // ---------------------------
