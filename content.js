@@ -160,17 +160,16 @@ function getSloganFromRating(rating) {
 function parseComposition(text) {
   if (!text) return null;
 
-  const materials = [];
-  const seen = new Set();
+  const rawMaterials = [];
 
-  // Known material names to filter valid matches
-  const knownMaterials = [
-    'cotton', 'polyester', 'nylon', 'wool', 'silk', 'linen', 'hemp',
-    'viscose', 'rayon', 'modal', 'tencel', 'lyocell', 'spandex', 'elastane',
-    'acrylic', 'cashmere', 'leather', 'suede', 'denim', 'fleece', 'velvet',
-    'satin', 'chiffon', 'tweed', 'corduroy', 'jersey', 'organza', 'lace',
-    'recycled polyester', 'organic cotton', 'recycled cotton', 'bamboo',
-    'merino', 'polyamide', 'flax'
+  // FABRIC_Q keys - the canonical fabric names we recognize
+  // Two-word entries MUST come before single-word to match correctly
+  const fabricQKeys = [
+    'recycled polyester', 'organic cotton', 'recycled cotton',
+    'cashmere', 'merino', 'wool', 'silk', 'linen', 'flax', 'hemp', 'cotton',
+    'viscose', 'rayon', 'lyocell', 'tencel', 'modal',
+    'nylon', 'polyamide', 'polyester', 'acrylic',
+    'elastane', 'spandex'
   ];
 
   // Blacklist of words that are NOT materials (labels, headers, etc.)
@@ -183,25 +182,19 @@ function parseComposition(text) {
   // Clean up the text
   const cleanText = text.replace(/[\n\r\t]+/g, ' ').replace(/\s+/g, ' ');
 
-  // Pattern 1: "60% Cotton" or "60 % Cotton"
+  // Pattern 1: "60% Cotton" or "60 % Cotton" or "60% Compact Cotton"
   const pattern1 = /(\d+)\s*%\s*([a-zA-Z][a-zA-Z\s]{1,25})/gi;
   let match;
   while ((match = pattern1.exec(cleanText)) !== null) {
     const percentage = parseInt(match[1]);
     const material = match[2].trim().toLowerCase().replace(/[,\.\s]+$/, '');
-    const key = material.split(/\s+/)[0]; // First word for deduplication
 
-    if (percentage > 0 && percentage <= 100 && !seen.has(key)) {
+    if (percentage > 0 && percentage <= 100) {
       // Skip if it's a non-material word (label, header, etc.)
-      const isBlacklisted = nonMaterials.some(nm => material.includes(nm) || nm.includes(key));
+      const isBlacklisted = nonMaterials.some(nm => material.includes(nm));
       if (isBlacklisted) continue;
 
-      // Check if it's a known material
-      const isKnown = knownMaterials.some(m => material.includes(m) || m.includes(key));
-      if (isKnown) {
-        materials.push({ name: material, percentage });
-        seen.add(key);
-      }
+      rawMaterials.push({ name: material, percentage });
     }
   }
 
@@ -210,19 +203,52 @@ function parseComposition(text) {
   while ((match = pattern2.exec(cleanText)) !== null) {
     const material = match[1].trim().toLowerCase().replace(/[,\.\s]+$/, '');
     const percentage = parseInt(match[2]);
-    const key = material.split(/\s+/)[0];
 
-    if (percentage > 0 && percentage <= 100 && !seen.has(key)) {
+    if (percentage > 0 && percentage <= 100) {
       // Skip if it's a non-material word
-      const isBlacklisted = nonMaterials.some(nm => material.includes(nm) || nm.includes(key));
+      const isBlacklisted = nonMaterials.some(nm => material.includes(nm));
       if (isBlacklisted) continue;
 
-      const isKnown = knownMaterials.some(m => material.includes(m) || m.includes(key));
-      if (isKnown) {
-        materials.push({ name: material, percentage });
-        seen.add(key);
+      rawMaterials.push({ name: material, percentage });
+    }
+  }
+
+  // Normalize materials to FABRIC_Q keys and combine percentages
+  // Maps normalized fabric name -> total percentage
+  const normalizedMap = new Map();
+
+  for (const mat of rawMaterials) {
+    const materialName = mat.name;
+    let matchedFabric = null;
+
+    // Try to find a matching FABRIC_Q key
+    // Check two-word matches first (e.g., "organic cotton" before "cotton")
+    for (const fabricKey of fabricQKeys) {
+      if (materialName === fabricKey) {
+        // Exact match - use as is
+        matchedFabric = fabricKey;
+        break;
+      }
+      if (materialName.includes(fabricKey)) {
+        // e.g., "compact cotton" contains "cotton"
+        // But "organic cotton" should match "organic cotton" not "cotton"
+        // Since fabricQKeys has two-word entries first, this works correctly
+        matchedFabric = fabricKey;
+        break;
       }
     }
+
+    if (matchedFabric) {
+      // Add to existing percentage or create new entry
+      const existing = normalizedMap.get(matchedFabric) || 0;
+      normalizedMap.set(matchedFabric, existing + mat.percentage);
+    }
+  }
+
+  // Convert map back to materials array
+  const materials = [];
+  for (const [name, percentage] of normalizedMap) {
+    materials.push({ name, percentage: Math.min(percentage, 100) }); // Cap at 100%
   }
 
   // Sort by percentage (highest first)

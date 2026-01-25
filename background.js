@@ -1,8 +1,9 @@
 // Background service worker
 console.log('Fabric Rating Extension background worker loaded');
 
-// Cache for scraped compositions
+// Cache for scraped compositions - with timestamps for expiration
 const compositionCache = new Map();
+const CACHE_MAX_AGE_MS = 5 * 60 * 1000; // 5 minutes
 
 // Queue for scraping requests
 let scrapeQueue = [];
@@ -11,9 +12,10 @@ let isProcessing = false;
 // Track if offscreen document exists
 let offscreenDocumentCreated = false;
 
-// Listen for installation
+// Listen for installation - clear cache on install/update
 chrome.runtime.onInstalled.addListener(() => {
-  console.log('Fabric Rating Extension installed');
+  console.log('Fabric Rating Extension installed - clearing cache');
+  compositionCache.clear();
   chrome.storage.sync.set({
     enabled: true,
     showNotifications: true
@@ -125,10 +127,11 @@ async function processQueue() {
   isProcessing = true;
   const { url, resolve } = scrapeQueue.shift();
 
-  // Check cache first
-  if (compositionCache.has(url)) {
+  // Check cache first (with expiration)
+  const cached = compositionCache.get(url);
+  if (cached && (Date.now() - cached.timestamp < CACHE_MAX_AGE_MS)) {
     console.log('Cache hit for:', url);
-    resolve(compositionCache.get(url));
+    resolve(cached.data);
     isProcessing = false;
     processQueue();
     return;
@@ -137,8 +140,8 @@ async function processQueue() {
   try {
     const data = await scrapeWithOffscreen(url);
 
-    // Cache the result
-    compositionCache.set(url, data);
+    // Cache the result with timestamp
+    compositionCache.set(url, { data, timestamp: Date.now() });
     console.log('Scraped and cached:', url, data?.materials);
 
     resolve(data);
