@@ -14,7 +14,7 @@ function createMascotIcon() {
 
   // Create image from mascot file
   const img = document.createElement('img');
-  img.src = chrome.runtime.getURL('icons/mascot.svg');
+  img.src = chrome.runtime.getURL('icons/good.png');
   img.alt = 'Wooly';
   icon.appendChild(img);
 
@@ -63,11 +63,11 @@ const SITE_CONFIGS = {
     compositionSelector: '[class*="about-me"], [class*="composition"]',
   },
   'amazon.com': {
-  productCards: '[data-component-type="s-search-result"]',
-  productLink: 'h2 a.a-link-normal',
-  imageContainer: 'img.s-image',
-  compositionSelector: '#productDetails_techSpec_section_1, #productDetails_detailBullets_sections1, #detailBullets_feature_div'
-}
+    productCards: '[data-component-type="s-search-result"]',
+    productLink: 'h2 a.a-link-normal',
+    imageContainer: 'img.s-image',
+    compositionSelector: '#productDetails_techSpec_section_1, #productDetails_detailBullets_sections1, #detailBullets_feature_div'
+  }
 };
 
 // Get current site config
@@ -374,7 +374,7 @@ async function scrapeComposition(productUrl) {
 }
 
 // Generate fabric rows HTML from materials data
-function getFabricRowsHTML(materials, rating) {
+function getFabricRowsHTML(materials) {
   // If no materials data available, show a message
   if (!materials || materials.length === 0) {
     return `
@@ -395,7 +395,8 @@ function getFabricRowsHTML(materials, rating) {
           <span class="sheep-fabric-percent">${f.percentage}%</span>
         </div>
         <div class="sheep-fabric-bar-track">
-          <div class="sheep-fabric-bar-fill rating-${rating}" style="width: ${f.percentage}%"></div>
+          <!-- Using static class 'sheep-bar-static' instead of rating-based color -->
+          <div class="sheep-fabric-bar-fill sheep-bar-static" style="width: ${f.percentage}%"></div>
         </div>
       </div>
     `
@@ -425,8 +426,9 @@ function createRatingIndicator(score, productUrl, compositionData) {
 
   // Use real fabric data if available
   const materials = compositionData?.materials || null;
-  const fabricRows = getFabricRowsHTML(materials, rating);
-  const slogan = getSloganFromRating(rating);
+  // No longer passing rating to getFabricRowsHTML
+  const fabricRows = getFabricRowsHTML(materials);
+  // Slogan is removed as per request for cleaner UI
   const mascotUrl = getMascotFromRating(rating);
 
   // Circular Score Calculations
@@ -436,43 +438,39 @@ function createRatingIndicator(score, productUrl, compositionData) {
   const offset = circumference - (score / 100) * circumference;
 
   popup.innerHTML = `
-    <!-- Cloud Header with Mascot and Circular Score -->
-    <div class="sheep-popup-header">
-      <!-- Wooly Mascot -->
-      <div class="sheep-mascot-float">
+    <div class="sheep-popup-wrapper">
+      <!-- Left: Big Mascot -->
+      <div class="sheep-mascot-large">
         <img src="${mascotUrl}" alt="Wooly" />
       </div>
-      
-      <!-- Score Display -->
-      <div class="sheep-score-display">
-        <div class="sheep-title">Wooly Score</div>
+
+      <!-- Right: Info Column -->
+      <div class="sheep-info-column">
         
-        <div class="sheep-circular-widget">
-          <svg class="sheep-circle-svg" viewBox="0 0 80 80">
-            <!-- Background Track -->
-            <circle class="score-track" cx="40" cy="40" r="${radius}"></circle>
-            <!-- Progress Fill -->
-            <circle class="score-fill rating-${rating}" cx="40" cy="40" r="${radius}"
-              style="stroke-dasharray: ${circumference}; stroke-dashoffset: ${offset};">
-            </circle>
-          </svg>
-          <div class="sheep-circle-text">
-            <span class="sheep-big-score rating-text-${rating}">${score}</span>
-            <span class="sheep-score-max">/100</span>
+        <!-- Top Right: Score -->
+        <div class="sheep-score-container">
+          <div class="sheep-circular-widget">
+            <svg class="sheep-circle-svg" viewBox="0 0 80 80">
+              <!-- Background Track -->
+              <circle class="score-track" cx="40" cy="40" r="${radius}"></circle>
+              <!-- Progress Fill -->
+              <circle class="score-fill rating-${rating}" cx="40" cy="40" r="${radius}"
+                style="stroke-dasharray: ${circumference}; stroke-dashoffset: ${offset};">
+              </circle>
+            </svg>
+            <div class="sheep-circle-text">
+              <span class="sheep-big-score rating-text-${rating}">${score}</span>
+              <span class="sheep-score-max">/100</span>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
 
-    <!-- Content Body -->
-    <div class="sheep-content-body">
-      <div class="sheep-question-text">
-        ${slogan}
-      </div>
-      
-      <div class="sheep-data-box">
-        <div class="sheep-fabric-title">Material Breakdown</div>
-        ${fabricRows}
+        <!-- Bottom Right: Material Breakdown -->
+        <div class="sheep-materials-container">
+          <!-- <div class="sheep-fabric-title">Materials</div> -->
+          ${fabricRows}
+        </div>
+
       </div>
     </div>
   `;

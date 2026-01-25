@@ -90,92 +90,117 @@
 /* -------------------------------------------------------------------------
    2. HOVER POPUP (Cloud-Themed Card)
    ------------------------------------------------------------------------- */
+/* -------------------------------------------------------------------------
+   2. HOVER POPUP (No Box - Floating Elements)
+   ------------------------------------------------------------------------- */
 .fabric-hover-popup {
   position: fixed !important;
   z-index: 2147483647 !important;
-  width: 320px;
-  min-height: 200px;
+  /* Removed fixed dimensions to allow content flow */
+  width: auto;
+  min-height: 0;
+  padding: 0;
 
-  /* Cloud Shape & Background */
-  background: linear-gradient(135deg, #FFFFFF 0%, #F0F9FF 100%);
-  border-radius: 24px;
-  /* Making it look like a fluffy cloud card */
-  border: 4px solid rgba(255, 255, 255, 0.8);
-
-  /* Deep, soft shadows for floating effect */
-  box-shadow:
-    0 20px 25px -5px rgba(0, 0, 0, 0.1),
-    0 10px 10px -5px rgba(0, 0, 0, 0.04),
-    0 0 0 1px rgba(186, 230, 253, 0.4),
-    /* Subtle blue ring */
-    inset 0 2px 4px rgba(255, 255, 255, 1);
+  /* NO BOX styles */
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0;
 
   opacity: 0;
   pointer-events: none;
-  transform: translateY(10px) scale(0.95);
-  transition:
-    opacity 0.2s ease-out,
-    transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  /* Bouncy enter */
+  transform: translateY(10px);
+  transition: opacity 0.2s ease-out, transform 0.2s ease-out;
 
-  overflow: hidden;
-  /* Contains the children */
+  overflow: visible !important;
 }
 
-/* Organic Cloud Blobs (Decoration) */
+/* Remove the cloud blob decoration */
 .fabric-hover-popup::before {
-  content: '';
-  position: absolute;
-  top: -40px;
-  right: -40px;
-  width: 120px;
-  height: 120px;
-  background: radial-gradient(circle, rgba(224, 242, 254, 0.5) 0%, rgba(255, 255, 255, 0) 70%);
-  border-radius: 50%;
-  z-index: -1;
+  display: none;
 }
 
 .fabric-hover-popup.visible {
   opacity: 1;
   pointer-events: auto;
-  transform: translateY(0) scale(1);
+  transform: translateY(0);
 }
 
-/* HEADER: Mascot + Score */
-.sheep-popup-header {
+/* Flex Layout Wrapper */
+.sheep-popup-wrapper {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 24px 24px 16px;
-  border-bottom: 2px dashed rgba(203, 213, 225, 0.4);
-  background: rgba(255, 255, 255, 0.5);
+  align-items: flex-end;
+  /* Align bottom */
+  gap: 20px;
 }
 
-/* Mascot Image - LARGE & INTEGRATED */
-.sheep-mascot-float {
-  width: 120px;
-  height: 120px;
-  position: relative;
-  margin-left: -20px;
-  margin-top: -10px;
-  margin-bottom: -20px;
-
-  /* Floating animation */
+/* LARGE Mascot */
+.sheep-mascot-large {
+  /* Much larger size: ~2x bigger */
+  width: 250px;
+  height: 250px;
+  /* Float animation */
   animation: float-y 3s ease-in-out infinite;
-
-  /* Ensure it doesn't get clipped weirdly if we can help it */
+  flex-shrink: 0;
+  /* Ensure it sits behind the info */
   z-index: 10;
+  position: relative;
 }
 
-.sheep-mascot-float img {
+.sheep-mascot-large img {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  /* Soft shadow for depth, assuming transparent PNG */
-  filter: drop-shadow(0 8px 12px rgba(59, 130, 246, 0.15));
-  transform: rotate(-5deg);
-  /* Jaunty angle */
+  /* Add shadow to the image since there's no box */
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.15));
 }
+
+/* Right Info Column */
+.sheep-info-column {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+  /* OVERLAY: Pull to the left to overlap the mascot */
+  margin-left: -100px;
+  margin-bottom: 20px;
+  /* Lift slightly if needed */
+  /* Ensure it sits ON TOP of the mascot */
+  z-index: 20;
+  position: relative;
+}
+
+/* Score Container - Top Right */
+.sheep-score-container {
+  width: 100%;
+  display: flex;
+  justify-content: flex-start;
+  /* Kept close to the layout */
+}
+
+/* Make circular widget pop a bit on its own */
+.sheep-circular-widget {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(4px);
+  border-radius: 50%;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Materials Container - Bottom Right */
+.sheep-materials-container {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  padding: 12px 16px;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  min-width: 180px;
+}
+
+/* HEADER: Mascot + Score */
+
 
 @keyframes float-y {
 
@@ -190,27 +215,7 @@
 }
 
 /* Score Circle Container */
-.sheep-score-display {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
 
-.sheep-title {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: #64748B;
-  letter-spacing: 0.5px;
-  margin-bottom: 4px;
-}
-
-/* SVG Circle Widget */
-.sheep-circular-widget {
-  position: relative;
-  width: 80px;
-  height: 80px;
-}
 
 .sheep-circle-svg {
   transform: rotate(-90deg);
@@ -258,19 +263,7 @@
   color: #94A3B8;
 }
 
-/* CONTENT BODY */
-.sheep-content-body {
-  padding: 16px 24px 24px;
-}
 
-.sheep-question-text {
-  text-align: center;
-  font-size: 14px;
-  font-weight: 600;
-  color: #475569;
-  margin-bottom: 16px;
-  line-height: 1.4;
-}
 
 .sheep-fabric-title {
   font-size: 11px;
@@ -346,6 +339,13 @@
   background: #22C55E;
 }
 
+/* STATIC COLOR FOR MATERIALS (Unrelated to score) */
+.sheep-fabric-bar-fill.sheep-bar-static {
+  /* Using a nice Indigo/Slate color to be distinct from rating colors */
+  background: #64748B;
+  /* Slate 500 */
+}
+
 /* Text Colors matching ratings */
 .rating-text-red {
   color: #DC2626;
@@ -372,10 +372,30 @@
   right: 24px !important;
   z-index: 99999 !important;
   transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  /* Pulse animation to show activity */
+  animation: wooly-pulse 2s infinite;
+  /* Ensure pulse is circular */
+  border-radius: 50%;
+}
+
+@keyframes wooly-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7);
+  }
+
+  70% {
+    box-shadow: 0 0 0 15px rgba(74, 222, 128, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(74, 222, 128, 0);
+  }
 }
 
 .wooly-mascot-container:hover {
   transform: scale(1.1);
+  /* Pause pulse on hover */
+  animation: none;
 }
 
 .wooly-mascot-icon {
@@ -397,8 +417,8 @@
 }
 
 .wooly-mascot-icon img {
-  width: 70%;
-  height: 70%;
+  width: 90%;
+  height: 90%;
   object-fit: contain;
 }
 
