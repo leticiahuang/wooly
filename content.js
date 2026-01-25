@@ -14,7 +14,7 @@ function createMascotIcon() {
 
   // Create image from mascot file
   const img = document.createElement('img');
-  img.src = chrome.runtime.getURL('icons/good.png');
+  img.src = chrome.runtime.getURL('icons/excellent.png');
   img.alt = 'Wooly';
   icon.appendChild(img);
 
@@ -805,15 +805,25 @@ function debounce(func, wait) {
 
 // Initialize when page loads
 function init() {
-  console.log('Initializing Fabric Rating Extension');
+  chrome.storage.sync.get(['enabled'], (data) => {
+    if (data.enabled === false) {
+      console.log('Fabric Rating Extension is disabled');
+      return;
+    }
 
-  // Add the floating mascot icon (from rectangle-popup)
-  createMascotIcon();
+    console.log('Initializing Fabric Rating Extension');
 
-  // Wait a bit for the page to load
-  setTimeout(() => {
-    addRatingsToProducts();
-  }, 1000);
+    // Add the floating mascot icon (from rectangle-popup)
+    createMascotIcon();
+
+    // Wait a bit for the page to load
+    setTimeout(() => {
+      addRatingsToProducts();
+    }, 1000);
+
+    // Start observer for dynamic content
+    startObserver();
+  });
 }
 
 if (document.readyState === 'loading') {
@@ -825,18 +835,20 @@ if (document.readyState === 'loading') {
 // Re-scan when new content loads (for infinite scroll)
 const debouncedScan = debounce(addRatingsToProducts, 1000);
 
-const observer = new MutationObserver((mutations) => {
-  // Check if significant changes occurred
-  const hasNewProducts = mutations.some(mutation =>
-    mutation.addedNodes.length > 0
-  );
+function startObserver() {
+  const observer = new MutationObserver((mutations) => {
+    // Check if significant changes occurred
+    const hasNewProducts = mutations.some(mutation =>
+      mutation.addedNodes.length > 0
+    );
 
-  if (hasNewProducts) {
-    debouncedScan();
-  }
-});
+    if (hasNewProducts) {
+      debouncedScan();
+    }
+  });
 
-observer.observe(document.body, {
-  childList: true,
-  subtree: true
-});
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+}

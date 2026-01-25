@@ -192,4 +192,40 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   return false;
+  return false;
+});
+
+// Handle extension icon click (Toggle ON/OFF)
+chrome.action.onClicked.addListener((tab) => {
+  chrome.storage.sync.get(['enabled'], (data) => {
+    const newState = !data.enabled; // Toggle
+
+    // Save new state
+    chrome.storage.sync.set({ enabled: newState }, () => {
+      // Update badge to show state
+      updateBadgeState(newState);
+
+      // Reload current tab to apply changes
+      if (tab.id) {
+        chrome.tabs.reload(tab.id);
+      }
+    });
+  });
+});
+
+// Helper to update badge appearance
+function updateBadgeState(enabled) {
+  if (enabled) {
+    chrome.action.setBadgeText({ text: '' }); // Clear "OFF" text
+  } else {
+    chrome.action.setBadgeText({ text: 'OFF' });
+    chrome.action.setBadgeBackgroundColor({ color: '#666666' });
+  }
+}
+
+// Initialize badge on startup
+chrome.runtime.onStartup.addListener(() => {
+  chrome.storage.sync.get(['enabled'], (data) => {
+    updateBadgeState(data.enabled !== false);
+  });
 });
