@@ -169,7 +169,15 @@ function parseComposition(text) {
     'viscose', 'rayon', 'modal', 'tencel', 'lyocell', 'spandex', 'elastane',
     'acrylic', 'cashmere', 'leather', 'suede', 'denim', 'fleece', 'velvet',
     'satin', 'chiffon', 'tweed', 'corduroy', 'jersey', 'organza', 'lace',
-    'recycled polyester', 'organic cotton', 'recycled cotton', 'bamboo'
+    'recycled polyester', 'organic cotton', 'recycled cotton', 'bamboo',
+    'merino', 'polyamide', 'flax'
+  ];
+
+  // Blacklist of words that are NOT materials (labels, headers, etc.)
+  const nonMaterials = [
+    'composition', 'material', 'materials', 'fabric', 'fabrics', 'content',
+    'care', 'washing', 'instructions', 'made', 'origin', 'country', 'shell',
+    'lining', 'outer', 'inner', 'main', 'body', 'exterior', 'interior'
   ];
 
   // Clean up the text
@@ -184,9 +192,13 @@ function parseComposition(text) {
     const key = material.split(/\s+/)[0]; // First word for deduplication
 
     if (percentage > 0 && percentage <= 100 && !seen.has(key)) {
-      // Check if it's a known material or contains a known material
-      const isKnown = knownMaterials.some(m => material.includes(m) || m.includes(material.split(/\s+/)[0]));
-      if (isKnown || material.length <= 15) {
+      // Skip if it's a non-material word (label, header, etc.)
+      const isBlacklisted = nonMaterials.some(nm => material.includes(nm) || nm.includes(key));
+      if (isBlacklisted) continue;
+
+      // Check if it's a known material
+      const isKnown = knownMaterials.some(m => material.includes(m) || m.includes(key));
+      if (isKnown) {
         materials.push({ name: material, percentage });
         seen.add(key);
       }
@@ -201,8 +213,12 @@ function parseComposition(text) {
     const key = material.split(/\s+/)[0];
 
     if (percentage > 0 && percentage <= 100 && !seen.has(key)) {
-      const isKnown = knownMaterials.some(m => material.includes(m) || m.includes(material.split(/\s+/)[0]));
-      if (isKnown || material.length <= 15) {
+      // Skip if it's a non-material word
+      const isBlacklisted = nonMaterials.some(nm => material.includes(nm) || nm.includes(key));
+      if (isBlacklisted) continue;
+
+      const isKnown = knownMaterials.some(m => material.includes(m) || m.includes(key));
+      if (isKnown) {
         materials.push({ name: material, percentage });
         seen.add(key);
       }
