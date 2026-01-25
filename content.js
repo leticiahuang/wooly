@@ -1,6 +1,41 @@
 // Content script that runs on shopping websites
 console.log('Fabric Rating Extension loaded');
 
+// Create and add the floating mascot icon
+function createMascotIcon() {
+  // Don't add if already exists
+  if (document.querySelector('.wooly-mascot-container')) return;
+
+  const container = document.createElement('div');
+  container.className = 'wooly-mascot-container';
+
+  const icon = document.createElement('div');
+  icon.className = 'wooly-mascot-icon';
+
+  // Create image from mascot file
+  const img = document.createElement('img');
+  img.src = chrome.runtime.getURL('icons/mascot.svg');
+  img.alt = 'Wooly';
+  icon.appendChild(img);
+
+  // Tooltip
+  const tooltip = document.createElement('div');
+  tooltip.className = 'wooly-mascot-tooltip';
+  tooltip.textContent = '🧶 Wooly is active!';
+
+  container.appendChild(icon);
+  container.appendChild(tooltip);
+  document.body.appendChild(container);
+
+  // Optional: click to scroll to top or show info
+  container.addEventListener('click', () => {
+    tooltip.textContent = '✨ Checking fabric quality...';
+    setTimeout(() => {
+      tooltip.textContent = '🧶 Wooly is active!';
+    }, 2000);
+  });
+}
+
 // Site-specific selectors for different retailers
 const SITE_CONFIGS = {
   'zara.com': {
@@ -44,7 +79,7 @@ function getSiteConfig() {
   };
 }
 
-// Calculate real score from materials using fabricDatabase
+// Calculate real score from materials using fabricDatabase (from diego)
 function calculateRealScore(materials) {
   if (!materials || materials.length === 0) return null;
 
@@ -85,14 +120,42 @@ function calculateRealScore(materials) {
   return Math.round(avgScore * 10);
 }
 
-// Determine rating based on score
+// Determine rating based on score using new 4-tier color system (from rectangle-popup)
 function getRatingFromScore(score) {
-  if (score >= 70) return 'green';
-  if (score >= 40) return 'yellow';
-  return 'red';
+  // Use scoreColors if available, otherwise fallback
+  if (window.scoreColors && window.scoreColors.getColorClassFromScore) {
+    return window.scoreColors.getColorClassFromScore(score);
+  }
+  // Fallback logic matching scoreColors.js
+  if (score <= 40) return 'red';
+  if (score <= 65) return 'medium';
+  if (score <= 85) return 'lightGreen';
+  return 'darkGreen';
 }
 
-// Parse material composition from text
+// Get label text from rating (from rectangle-popup)
+function getLabelFromRating(rating) {
+  const labels = {
+    red: 'Poor',
+    medium: 'Moderate',
+    lightGreen: 'Good',
+    darkGreen: 'Excellent'
+  };
+  return labels[rating] || 'Unknown';
+}
+
+// Get dynamic slogan from rating (from rectangle-popup)
+function getSloganFromRating(rating) {
+  const slogans = {
+    red: "Don't get fleeced! <span class=\"sheep-emoji\">🙅</span>",
+    medium: "This fabric is a bit... <br> fuzzy <span class=\"sheep-emoji\">🤔</span>",
+    lightGreen: "Not baaa-d at all <span class=\"sheep-emoji\">🐑</span>",
+    darkGreen: "Shear perfection! <span class=\"sheep-emoji\">✨</span>"
+  };
+  return slogans[rating] || "Check the details below!";
+}
+
+// Parse material composition from text (from diego)
 function parseComposition(text) {
   if (!text) return null;
 
@@ -117,7 +180,7 @@ function parseComposition(text) {
   return materials.length > 0 ? materials : null;
 }
 
-// Scrape composition from Zara product page
+// Scrape composition from Zara product page (from diego)
 async function scrapeZaraComposition(productUrl) {
   try {
     console.log('Requesting composition scrape for:', productUrl);
@@ -147,7 +210,7 @@ async function scrapeZaraComposition(productUrl) {
   }
 }
 
-// Scrape composition from any product page
+// Scrape composition from any product page (from diego)
 async function scrapeComposition(productUrl) {
   const hostname = window.location.hostname;
 
@@ -181,132 +244,160 @@ async function scrapeComposition(productUrl) {
   }
 }
 
-// Create rating indicator with hover tooltip
+// Generate fabric rows HTML from materials data
+function getFabricRowsHTML(materials) {
+  // Use real materials if available, otherwise fallback to placeholder
+  const fabric = materials || [
+    { name: "cotton", percentage: 60 },
+    { name: "polyester", percentage: 35 },
+    { name: "elastane", percentage: 5 },
+  ];
+
+  return fabric
+    .map(
+      (f) => `
+      <div class="sheep-fabric-row">
+        <div class="sheep-fabric-info">
+          <span class="sheep-fabric-name">${f.name.charAt(0).toUpperCase() + f.name.slice(1)}</span>
+          <span class="sheep-fabric-percent">${f.percentage || f.percent}%</span>
+        </div>
+        <div class="sheep-fabric-bar-track">
+          <div class="sheep-fabric-bar-fill" style="width: ${f.percentage || f.percent}%"></div>
+        </div>
+      </div>
+    `
+    )
+    .join("");
+}
+
+// Create rating button with text label and hover popup (from rectangle-popup, adapted for real scores)
 function createRatingIndicator(score, productUrl, compositionData) {
   const rating = getRatingFromScore(score);
+  const label = getLabelFromRating(rating);
 
+  // Create container for button and popup
   const container = document.createElement('div');
   container.className = 'fabric-rating-container';
-  container.setAttribute('data-product-url', productUrl);
-  if (compositionData) {
-    container.setAttribute('data-composition', JSON.stringify(compositionData));
-  }
+  container.style.cssText = 'position: absolute !important; bottom: 12px !important; right: 12px !important; z-index: 1000 !important; left: auto !important;';
 
-  const indicator = document.createElement('div');
-  indicator.className = `fabric-rating-indicator fabric-rating-${rating}`;
+  // Create the button (pill-shaped from rectangle-popup)
+  const button = document.createElement('div');
+  button.className = `fabric-rating-button fabric-rating-${rating}`;
+  button.style.cssText = '';
+  button.textContent = label;
 
-  const light = document.createElement('div');
-  light.className = 'fabric-rating-light';
-  indicator.appendChild(light);
+  // Create the hover popup with NEW structure (from rectangle-popup)
+  const popup = document.createElement('div');
+  popup.className = 'fabric-hover-popup';
 
-  const tooltip = document.createElement('div');
-  tooltip.className = 'fabric-rating-tooltip-hover';
-  tooltip.innerHTML = `
-    <div class="tooltip-score">${score}</div>
-    <div class="tooltip-label">Sustainability Score</div>
+  // Use real fabric data if available
+  const materials = compositionData?.materials || null;
+  const fabricRows = getFabricRowsHTML(materials);
+  const slogan = getSloganFromRating(rating);
+
+  // Circular Score Calculations
+  const radius = 36;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (score / 100) * circumference;
+
+  popup.innerHTML = `
+    <!-- Wavy Header with Circular Score -->
+    <div class="sheep-popup-header centered-header">
+      <div class="sheep-score-display centered-score">
+        <div class="sheep-title">Wooly Estimate</div>
+        
+        <div class="sheep-circular-widget">
+          <svg class="sheep-circle-svg" width="100" height="100" viewBox="0 0 100 100">
+            <!-- Background Track -->
+            <circle class="score-track" cx="50" cy="50" r="${radius}"></circle>
+            <!-- Progress Fill -->
+            <circle class="score-fill rating-${rating}" cx="50" cy="50" r="${radius}"
+              style="stroke-dasharray: ${circumference}; stroke-dashoffset: ${offset};">
+            </circle>
+          </svg>
+          <div class="sheep-circle-text">
+            <span class="sheep-big-score">${score}</span>
+            <span class="sheep-score-max">/100</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Content Body -->
+    <div class="sheep-content-body">
+      <div class="sheep-question-text">
+        ${slogan}
+      </div>
+      
+      <div class="sheep-data-box">
+        <div class="sheep-fabric-title">Material Breakdown</div>
+        ${fabricRows}
+      </div>
+    </div>
   `;
 
-  container.appendChild(indicator);
-  container.appendChild(tooltip);
+  // Track hover state for both button and popup
+  let hideTimeout = null;
+  let isOverPopup = false;
+  let isOverButton = false;
 
-  // Click handler to show detailed popup
-  container.addEventListener('click', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    showDetailedPopup(productUrl, compositionData, score, rating);
+  const showPopup = () => {
+    if (hideTimeout) clearTimeout(hideTimeout);
+
+    // Position logic
+    const buttonRect = button.getBoundingClientRect();
+    popup.style.position = 'fixed';
+    popup.style.left = `${buttonRect.left - 280}px`;
+    popup.style.top = `${buttonRect.top - 50}px`;
+
+    document.body.appendChild(popup);
+
+    // Force reflow for transition
+    requestAnimationFrame(() => {
+      popup.classList.add('visible');
+    });
+  };
+
+  const hidePopup = () => {
+    hideTimeout = setTimeout(() => {
+      if (!isOverPopup && !isOverButton) {
+        popup.classList.remove('visible');
+        setTimeout(() => {
+          if (popup.parentNode && !popup.classList.contains('visible')) {
+            popup.parentNode.removeChild(popup);
+          }
+        }, 200);
+      }
+    }, 150);
+  };
+
+  // Event Listeners
+  button.addEventListener('mouseenter', () => {
+    isOverButton = true;
+    showPopup();
   });
+
+  button.addEventListener('mouseleave', () => {
+    isOverButton = false;
+    hidePopup();
+  });
+
+  popup.addEventListener('mouseenter', () => {
+    isOverPopup = true;
+    if (hideTimeout) clearTimeout(hideTimeout);
+  });
+
+  popup.addEventListener('mouseleave', () => {
+    isOverPopup = false;
+    hidePopup();
+  });
+
+  container.appendChild(button);
 
   return container;
 }
 
-// Show detailed composition popup
-function showDetailedPopup(productUrl, compositionData, score, rating) {
-  // Remove any existing popup
-  const existingPopup = document.querySelector('.fabric-detail-popup');
-  if (existingPopup) existingPopup.remove();
-
-  const popup = document.createElement('div');
-  popup.className = 'fabric-detail-popup';
-
-  let materialsHtml = '<p class="no-data">Loading composition data...</p>';
-
-  if (compositionData && compositionData.materials) {
-    materialsHtml = compositionData.materials.map(mat => `
-      <div class="material-item">
-        <span class="material-name">${mat.name.charAt(0).toUpperCase() + mat.name.slice(1)}</span>
-        <span class="material-percentage">${mat.percentage}%</span>
-      </div>
-    `).join('');
-  } else if (compositionData && compositionData.raw) {
-    materialsHtml = `<p class="raw-composition">${compositionData.raw}</p>`;
-  }
-
-  popup.innerHTML = `
-    <div class="popup-header">
-      <h3>Material Composition</h3>
-      <button class="popup-close">×</button>
-    </div>
-    <div class="popup-content">
-      <div class="score-display ${rating}">
-        <div class="score-number">${score}</div>
-        <div class="score-label">Sustainability Score</div>
-      </div>
-      <div class="materials-list">
-        <h4>Composition</h4>
-        ${materialsHtml}
-      </div>
-    </div>
-  `;
-
-  document.body.appendChild(popup);
-
-  // If we don't have composition data yet, fetch it
-  if (!compositionData) {
-    scrapeComposition(productUrl).then(data => {
-      if (data) {
-        const materialsList = popup.querySelector('.materials-list');
-        if (data.materials) {
-          materialsList.innerHTML = `
-            <h4>Composition</h4>
-            ${data.materials.map(mat => `
-              <div class="material-item">
-                <span class="material-name">${mat.name.charAt(0).toUpperCase() + mat.name.slice(1)}</span>
-                <span class="material-percentage">${mat.percentage}%</span>
-              </div>
-            `).join('')}
-          `;
-        } else if (data.raw) {
-          materialsList.innerHTML = `
-            <h4>Composition</h4>
-            <p class="raw-composition">${data.raw}</p>
-          `;
-        }
-      } else {
-        popup.querySelector('.materials-list').innerHTML = `
-          <h4>Composition</h4>
-          <p class="no-data">Could not load composition data</p>
-        `;
-      }
-    });
-  }
-
-  // Close button
-  popup.querySelector('.popup-close').addEventListener('click', () => {
-    popup.remove();
-  });
-
-  // Close when clicking outside
-  setTimeout(() => {
-    document.addEventListener('click', function closePopup(e) {
-      if (!popup.contains(e.target)) {
-        popup.remove();
-        document.removeEventListener('click', closePopup);
-      }
-    });
-  }, 100);
-}
-
-// Add rating indicators to product cards
+// Add rating indicators to product cards (combined: async scraping from diego, UI from rectangle-popup)
 async function addRatingsToProducts() {
   const config = getSiteConfig();
   console.log('Scanning for products with config:', config);
@@ -353,7 +444,7 @@ async function addRatingsToProducts() {
       imageContainer.style.position = 'relative';
     }
 
-    // Try to scrape composition immediately for accurate scoring
+    // Try to scrape composition immediately for accurate scoring (from diego)
     let compositionData = null;
     let score = 50; // Default score
 
@@ -375,7 +466,7 @@ async function addRatingsToProducts() {
       console.log('Could not scrape, using default score');
     }
 
-    // Create and add indicator with REAL score
+    // Create and add indicator with REAL score (combined UI)
     const indicator = createRatingIndicator(score, productUrl, compositionData);
     imageContainer.appendChild(indicator);
 
@@ -407,6 +498,9 @@ function debounce(func, wait) {
 // Initialize when page loads
 function init() {
   console.log('Initializing Fabric Rating Extension');
+
+  // Add the floating mascot icon (from rectangle-popup)
+  createMascotIcon();
 
   // Wait a bit for the page to load
   setTimeout(() => {

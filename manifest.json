@@ -23,8 +23,14 @@
         "https://www.uniqlo.com/*",
         "https://www.asos.com/*"
       ],
-      "js": ["fabricDatabase.js", "content.js"],
-      "css": ["styles.css"],
+      "js": [
+        "fabricDatabase.js",
+        "scoreColors.js",
+        "content.js"
+      ],
+      "css": [
+        "styles.css"
+      ],
       "run_at": "document_idle"
     }
   ],
@@ -43,5 +49,11 @@
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["icons/mascot.svg"],
+      "matches": ["https://*/*"]
+    }
+  ]
 }
