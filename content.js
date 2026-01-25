@@ -377,7 +377,7 @@ async function scrapeComposition(productUrl) {
       '.current-price',
       '[data-qa-qualifier="price-amount-current"]'  // Zara
     ];
-    
+
     for (const selector of priceSelectors) {
       const priceEl = doc.querySelector(selector);
       if (priceEl) {
@@ -445,7 +445,7 @@ function getFabricRowsHTML(materials) {
 function createRatingIndicator(score, productUrl, compositionData, price) {
   const rating = getRatingFromScore(score);
   const label = getLabelFromRating(rating);
-  
+
   // Calculate value score: (quality / price) * 100
   let valueScore = null;
   if (price && price > 0) {
@@ -481,6 +481,18 @@ function createRatingIndicator(score, productUrl, compositionData, price) {
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (score / 100) * circumference;
 
+  // Value Score Calculations
+  let valueRating = 'medium';
+  let valueOffset = 0;
+  if (valueScore !== null) {
+    if (valueScore < 40) valueRating = 'red';
+    else if (valueScore < 65) valueRating = 'medium';
+    else if (valueScore < 85) valueRating = 'lightGreen';
+    else valueRating = 'darkGreen';
+
+    valueOffset = circumference - (valueScore / 100) * circumference;
+  }
+
   popup.innerHTML = `
     <div class="sheep-popup-wrapper">
       <!-- Left: Big Mascot -->
@@ -493,24 +505,45 @@ function createRatingIndicator(score, productUrl, compositionData, price) {
         
         <!-- Top Right: Score -->
         <div class="sheep-score-container">
-          <div style="display: flex; gap: 20px; justify-content: center; align-items: center;">
-            <div class="sheep-circular-widget">
-              <svg class="sheep-circle-svg" viewBox="0 0 80 80">
-                <!-- Background Track -->
-                <circle class="score-track" cx="40" cy="40" r="${radius}"></circle>
-                <!-- Progress Fill -->
-                <circle class="score-fill rating-${rating}" cx="40" cy="40" r="${radius}"
-                  style="stroke-dasharray: ${circumference}; stroke-dashoffset: ${offset};">
-                </circle>
-              </svg>
-              <div class="sheep-circle-text">
-                <span class="sheep-big-score rating-text-${rating}">${score}</span>
-                <span class="sheep-score-max">/100</span>
-              </div>
+          <div style="display: flex; gap: 20px; justify-content: center; align-items: flex-start;">
+            
+            <!-- Quality Score -->
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 5px;">
+                <span style="font-size: 11px; text-transform: uppercase; color: #888; font-weight: 600; letter-spacing: 0.5px;">Quality</span>
+                <div class="sheep-circular-widget">
+                  <svg class="sheep-circle-svg" viewBox="0 0 80 80">
+                    <!-- Background Track -->
+                    <circle class="score-track" cx="40" cy="40" r="${radius}"></circle>
+                    <!-- Progress Fill -->
+                    <circle class="score-fill rating-${rating}" cx="40" cy="40" r="${radius}"
+                      style="stroke-dasharray: ${circumference}; stroke-dashoffset: ${offset};">
+                    </circle>
+                  </svg>
+                  <div class="sheep-circle-text">
+                    <span class="sheep-big-score rating-text-${rating}">${score}</span>
+                    <span class="sheep-score-max">/100</span>
+                  </div>
+                </div>
             </div>
-            ${valueScore !== null ? `<div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
-              <div style="font-size: 12px; color: #888; font-weight: 500;">Value Score</div>
-              <div style="font-size: 28px; font-weight: bold; color: #333;">${valueScore}</div>
+
+            <!-- Value Score (Optional) -->
+            ${valueScore !== null ? `
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 5px;">
+                <span style="font-size: 11px; text-transform: uppercase; color: #888; font-weight: 600; letter-spacing: 0.5px;">Value</span>
+                <div class="sheep-circular-widget">
+                  <svg class="sheep-circle-svg" viewBox="0 0 80 80">
+                    <!-- Background Track -->
+                    <circle class="score-track" cx="40" cy="40" r="${radius}"></circle>
+                    <!-- Progress Fill -->
+                    <circle class="score-fill rating-${valueRating}" cx="40" cy="40" r="${radius}"
+                      style="stroke-dasharray: ${circumference}; stroke-dashoffset: ${valueOffset};">
+                    </circle>
+                  </svg>
+                  <div class="sheep-circle-text">
+                    <span class="sheep-big-score rating-text-${valueRating}">${valueScore}</span>
+                    <span class="sheep-score-max">/100</span>
+                  </div>
+                </div>
             </div>` : ''}
           </div>
         </div>
@@ -525,9 +558,8 @@ function createRatingIndicator(score, productUrl, compositionData, price) {
     </div>
   `;
 
-  // Track hover state for both button and popup
+  // Track hover state for button
   let hideTimeout = null;
-  let isOverPopup = false;
   let isOverButton = false;
 
   const showPopup = () => {
@@ -576,7 +608,7 @@ function createRatingIndicator(score, productUrl, compositionData, price) {
 
   const hidePopup = () => {
     hideTimeout = setTimeout(() => {
-      if (!isOverPopup && !isOverButton) {
+      if (!isOverButton) {
         popup.classList.remove('visible');
         setTimeout(() => {
           if (popup.parentNode && !popup.classList.contains('visible')) {
@@ -595,16 +627,6 @@ function createRatingIndicator(score, productUrl, compositionData, price) {
 
   button.addEventListener('mouseleave', () => {
     isOverButton = false;
-    hidePopup();
-  });
-
-  popup.addEventListener('mouseenter', () => {
-    isOverPopup = true;
-    if (hideTimeout) clearTimeout(hideTimeout);
-  });
-
-  popup.addEventListener('mouseleave', () => {
-    isOverPopup = false;
     hidePopup();
   });
 
@@ -662,14 +684,64 @@ async function addRatingsToProducts() {
 
     // Extract price from the product card (fallback - prefer scraped price)
     let price = null;
-    const priceElement = card.querySelector('[class*="price"], [data-price], .product-price, .price');
-    if (priceElement) {
-      const priceText = priceElement.textContent || '';
-      const priceMatch = priceText.match(/\d+[\d.,]*/); // Matches 99.99, 99,99, etc.
-      if (priceMatch) {
-        price = parseFloat(priceMatch[0].replace(/,/g, '.'));
+
+    // Helper to parse price string to number
+    const parsePrice = (str) => {
+      if (!str) return null;
+      // Remove currency symbols and whitespace
+      let clean = str.replace(/[^\d.,]/g, '');
+
+      // Handle different formats:
+      // 1.234,56 (EU) -> 1234.56
+      // 1,234.56 (US) -> 1234.56
+      // 1.234 (EU) -> 1234
+      // 1,234 (US) -> 1234
+
+      // If contains both . and ,
+      if (clean.includes('.') && clean.includes(',')) {
+        if (clean.indexOf('.') > clean.indexOf(',')) {
+          // 1,234.56 - Standard US/UK
+          clean = clean.replace(/,/g, '');
+        } else {
+          // 1.234,56 - EU
+          clean = clean.replace(/\./g, '').replace(/,/g, '.');
+        }
+      } else if (clean.includes(',')) {
+        // If only comma: 1,234 or 12,34
+        // Assume decimal if it's 2 digits at end: 12,34 -> 12.34
+        // Assume thousands if 3 digits: 1,234 -> 1234
+        if (clean.match(/,\d{2}$/)) {
+          clean = clean.replace(/,/g, '.');
+        } else {
+          clean = clean.replace(/,/g, '');
+        }
+      }
+
+      const val = parseFloat(clean);
+      return !isNaN(val) && val > 0 ? val : null;
+    };
+
+    // Try a list of potential price selectors, prioritized
+    const cardPriceSelectors = [
+      '[data-testid="price"]',
+      '.product-price',
+      '.current-price',
+      '.price',
+      '.amount',
+      '[class*="price"]',
+      '[data-price]'
+    ];
+
+    for (const selector of cardPriceSelectors) {
+      const priceEl = card.querySelector(selector);
+      if (priceEl) {
+        // Look for the "current" or "sale" price first if nested
+        const currentPrice = priceEl.querySelector('.current, .sale, .new-price') || priceEl;
+        price = parsePrice(currentPrice.textContent);
+        if (price) break;
       }
     }
+
     if (price) {
       console.log(`Product price from listing: $${price}`);
     }
