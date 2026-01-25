@@ -193,11 +193,11 @@ function calculateScore(...percentages) {
   // Convert percentages to decimals
   const decimals = percentages.map(percent => percent / 100);
   
-  // Calculate average and score
+  // Calculate average and score (0-100 scale)
   const count = decimals.length;
   const sum = count > 0 ? decimals.reduce((acc, value) => acc + value, 0) : 0;
   const average = count > 0 ? sum / count : 0;
-  const score = Math.round(average * 10); // map average (0–1) to 0–10 scale
+  const score = Math.round(average * 100); // map average (0–1) to 0–100 scale
 
   // Return structured object for clarity
   return {
