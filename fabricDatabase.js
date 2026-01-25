@@ -188,23 +188,23 @@ function analyzeMaterials(materialsText) {
 
 // Function to calculate score from percentage inputs
 // Takes any number of percentages and converts to decimals
+// Returns an object with decimals array and computed statistics
 function calculateScore(...percentages) {
   // Convert percentages to decimals
   const decimals = percentages.map(percent => percent / 100);
   
-  // Calculate an average and a simple 0–10 score while preserving
-  // the existing return type (an array of decimals). Additional
-  // information is exposed via properties on the returned array.
+  // Calculate average and score
   const count = decimals.length;
   const sum = count > 0 ? decimals.reduce((acc, value) => acc + value, 0) : 0;
   const average = count > 0 ? sum / count : 0;
   const score = Math.round(average * 10); // map average (0–1) to 0–10 scale
 
-  // Attach computed values to the array without breaking existing usage
-  decimals.average = average;
-  decimals.score = score;
-
-  return decimals;
+  // Return structured object for clarity
+  return {
+    decimals,
+    average,
+    score
+  };
 }
 
 // Export for use in other scripts
