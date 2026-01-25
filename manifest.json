@@ -47,8 +47,16 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["icons/mascot.svg"],
-      "matches": ["https://*/*"]
+      "resources": [
+        "icons/mascot.svg",
+        "icons/excellent.png",
+        "icons/good.png",
+        "icons/medium.png",
+        "icons/poor.png"
+      ],
+      "matches": [
+        "https://*/*"
+      ]
     }
   ]
 }

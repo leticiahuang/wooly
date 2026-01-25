@@ -162,6 +162,18 @@ function getSloganFromRating(rating) {
   return slogans[rating] || "Check the details below!";
 }
 
+// Get Wooly mascot PNG path based on rating tier
+function getMascotFromRating(rating) {
+  const mascots = {
+    red: 'poor.png',
+    medium: 'medium.png',
+    lightGreen: 'good.png',
+    darkGreen: 'excellent.png'
+  };
+  const filename = mascots[rating] || 'good.png';
+  return chrome.runtime.getURL('icons/' + filename);
+}
+
 // Parse material composition from text (from diego)
 function parseComposition(text) {
   if (!text) return null;
@@ -362,13 +374,13 @@ async function scrapeComposition(productUrl) {
 }
 
 // Generate fabric rows HTML from materials data
-function getFabricRowsHTML(materials) {
+function getFabricRowsHTML(materials, rating) {
   // If no materials data available, show a message
   if (!materials || materials.length === 0) {
     return `
       <div class="sheep-fabric-row">
         <div class="sheep-fabric-info">
-          <span class="sheep-fabric-name" style="font-style: italic; color: #888;">Composition data unavailable</span>
+          <span class="sheep-fabric-name" style="font-style: italic; color: #94A3B8;">Composition data unavailable</span>
         </div>
       </div>
     `;
@@ -383,7 +395,7 @@ function getFabricRowsHTML(materials) {
           <span class="sheep-fabric-percent">${f.percentage}%</span>
         </div>
         <div class="sheep-fabric-bar-track">
-          <div class="sheep-fabric-bar-fill" style="width: ${f.percentage}%"></div>
+          <div class="sheep-fabric-bar-fill rating-${rating}" style="width: ${f.percentage}%"></div>
         </div>
       </div>
     `
@@ -413,31 +425,39 @@ function createRatingIndicator(score, productUrl, compositionData) {
 
   // Use real fabric data if available
   const materials = compositionData?.materials || null;
-  const fabricRows = getFabricRowsHTML(materials);
+  const fabricRows = getFabricRowsHTML(materials, rating);
   const slogan = getSloganFromRating(rating);
+  const mascotUrl = getMascotFromRating(rating);
 
   // Circular Score Calculations
+  // SVG size is 80x80, radius is approx 36 (stroke width 8)
   const radius = 36;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (score / 100) * circumference;
 
   popup.innerHTML = `
-    <!-- Wavy Header with Circular Score -->
-    <div class="sheep-popup-header centered-header">
-      <div class="sheep-score-display centered-score">
-        <div class="sheep-title">Wooly Estimate</div>
+    <!-- Cloud Header with Mascot and Circular Score -->
+    <div class="sheep-popup-header">
+      <!-- Wooly Mascot -->
+      <div class="sheep-mascot-float">
+        <img src="${mascotUrl}" alt="Wooly" />
+      </div>
+      
+      <!-- Score Display -->
+      <div class="sheep-score-display">
+        <div class="sheep-title">Wooly Score</div>
         
         <div class="sheep-circular-widget">
-          <svg class="sheep-circle-svg" width="100" height="100" viewBox="0 0 100 100">
+          <svg class="sheep-circle-svg" viewBox="0 0 80 80">
             <!-- Background Track -->
-            <circle class="score-track" cx="50" cy="50" r="${radius}"></circle>
+            <circle class="score-track" cx="40" cy="40" r="${radius}"></circle>
             <!-- Progress Fill -->
-            <circle class="score-fill rating-${rating}" cx="50" cy="50" r="${radius}"
+            <circle class="score-fill rating-${rating}" cx="40" cy="40" r="${radius}"
               style="stroke-dasharray: ${circumference}; stroke-dashoffset: ${offset};">
             </circle>
           </svg>
           <div class="sheep-circle-text">
-            <span class="sheep-big-score">${score}</span>
+            <span class="sheep-big-score rating-text-${rating}">${score}</span>
             <span class="sheep-score-max">/100</span>
           </div>
         </div>
@@ -465,13 +485,40 @@ function createRatingIndicator(score, productUrl, compositionData) {
   const showPopup = () => {
     if (hideTimeout) clearTimeout(hideTimeout);
 
-    // Position logic
-    const buttonRect = button.getBoundingClientRect();
+    // Temporarily add to DOM to measure dimensions
+    popup.style.visibility = 'hidden';
     popup.style.position = 'fixed';
-    popup.style.left = `${buttonRect.left - 280}px`;
-    popup.style.top = `${buttonRect.top - 50}px`;
-
     document.body.appendChild(popup);
+
+    const buttonRect = button.getBoundingClientRect();
+    const popupRect = popup.getBoundingClientRect();
+    const padding = 12; // viewport padding
+
+    // Calculate initial position (to the left of button)
+    let left = buttonRect.left - popupRect.width - 10;
+    let top = buttonRect.top - 50;
+
+    // Clamp to viewport bounds
+    // If would go off left edge, position to the right of button instead
+    if (left < padding) {
+      left = buttonRect.right + 10;
+    }
+    // If would go off right edge, clamp to right
+    if (left + popupRect.width > window.innerWidth - padding) {
+      left = window.innerWidth - popupRect.width - padding;
+    }
+    // Clamp top
+    if (top < padding) {
+      top = padding;
+    }
+    // Clamp bottom
+    if (top + popupRect.height > window.innerHeight - padding) {
+      top = window.innerHeight - popupRect.height - padding;
+    }
+
+    popup.style.left = `${left}px`;
+    popup.style.top = `${top}px`;
+    popup.style.visibility = 'visible';
 
     // Force reflow for transition
     requestAnimationFrame(() => {
