@@ -363,16 +363,47 @@ async function scrapeComposition(productUrl) {
     const config = getSiteConfig();
     const element = doc.querySelector(config.compositionSelector);
 
+    // Also try to extract price from the detail page
+    let price = null;
+    const priceSelectors = [
+      '.money-amount._main',  // Zara
+      '.money-amount',  // Zara
+      '[class*="price"]',
+      '[data-price]',
+      '.product-price',
+      '.price',
+      '[itemprop="price"]',
+      '.product-sale-price',
+      '.current-price',
+      '[data-qa-qualifier="price-amount-current"]'  // Zara
+    ];
+    
+    for (const selector of priceSelectors) {
+      const priceEl = doc.querySelector(selector);
+      if (priceEl) {
+        const priceText = priceEl.textContent || priceEl.getAttribute('content') || '';
+        const priceMatch = priceText.match(/[\$€£¥]?\s*(\d+[\d.,]*)/);
+        if (priceMatch) {
+          price = parseFloat(priceMatch[1].replace(/,/g, '.'));
+          if (price > 0 && price < 10000) { // Sanity check: price between $0-$10k
+            console.log(`Extracted price: $${price} from selector: ${selector}`);
+            break;
+          }
+        }
+      }
+    }
+
     if (element) {
       const text = element.textContent.trim();
       const materials = parseComposition(text);
       return {
         raw: text,
-        materials: materials
+        materials: materials,
+        price: price
       };
     }
 
-    return null;
+    return { price };
   } catch (error) {
     console.error('Error scraping composition:', error);
     return null;
@@ -411,9 +442,16 @@ function getFabricRowsHTML(materials) {
 }
 
 // Create rating button with text label and hover popup (from rectangle-popup, adapted for real scores)
-function createRatingIndicator(score, productUrl, compositionData) {
+function createRatingIndicator(score, productUrl, compositionData, price) {
   const rating = getRatingFromScore(score);
   const label = getLabelFromRating(rating);
+  
+  // Calculate value score: (quality / price) * 100
+  let valueScore = null;
+  if (price && price > 0) {
+    valueScore = clamp(Math.round((score / price) * 60), 0, 100);
+
+  }
 
   // Create container for button and popup
   const container = document.createElement('div');
@@ -455,19 +493,25 @@ function createRatingIndicator(score, productUrl, compositionData) {
         
         <!-- Top Right: Score -->
         <div class="sheep-score-container">
-          <div class="sheep-circular-widget">
-            <svg class="sheep-circle-svg" viewBox="0 0 80 80">
-              <!-- Background Track -->
-              <circle class="score-track" cx="40" cy="40" r="${radius}"></circle>
-              <!-- Progress Fill -->
-              <circle class="score-fill rating-${rating}" cx="40" cy="40" r="${radius}"
-                style="stroke-dasharray: ${circumference}; stroke-dashoffset: ${offset};">
-              </circle>
-            </svg>
-            <div class="sheep-circle-text">
-              <span class="sheep-big-score rating-text-${rating}">${score}</span>
-              <span class="sheep-score-max">/100</span>
+          <div style="display: flex; gap: 20px; justify-content: center; align-items: center;">
+            <div class="sheep-circular-widget">
+              <svg class="sheep-circle-svg" viewBox="0 0 80 80">
+                <!-- Background Track -->
+                <circle class="score-track" cx="40" cy="40" r="${radius}"></circle>
+                <!-- Progress Fill -->
+                <circle class="score-fill rating-${rating}" cx="40" cy="40" r="${radius}"
+                  style="stroke-dasharray: ${circumference}; stroke-dashoffset: ${offset};">
+                </circle>
+              </svg>
+              <div class="sheep-circle-text">
+                <span class="sheep-big-score rating-text-${rating}">${score}</span>
+                <span class="sheep-score-max">/100</span>
+              </div>
             </div>
+            ${valueScore !== null ? `<div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+              <div style="font-size: 12px; color: #888; font-weight: 500;">Value Score</div>
+              <div style="font-size: 28px; font-weight: bold; color: #333;">${valueScore}</div>
+            </div>` : ''}
           </div>
         </div>
 
@@ -616,12 +660,32 @@ async function addRatingsToProducts() {
       imageContainer.style.position = 'relative';
     }
 
+    // Extract price from the product card (fallback - prefer scraped price)
+    let price = null;
+    const priceElement = card.querySelector('[class*="price"], [data-price], .product-price, .price');
+    if (priceElement) {
+      const priceText = priceElement.textContent || '';
+      const priceMatch = priceText.match(/\d+[\d.,]*/); // Matches 99.99, 99,99, etc.
+      if (priceMatch) {
+        price = parseFloat(priceMatch[0].replace(/,/g, '.'));
+      }
+    }
+    if (price) {
+      console.log(`Product price from listing: $${price}`);
+    }
+
     // Try to scrape composition immediately for accurate scoring (from diego)
     let compositionData = null;
     let score = 50; // Default score
 
     try {
       compositionData = await scrapeComposition(productUrl);
+
+      // Use scraped price if available, otherwise use card price
+      if (compositionData?.price && compositionData.price > 0) {
+        price = compositionData.price;
+        console.log(`Product price from detail page: $${price}`);
+      }
 
       if (compositionData && compositionData.materials) {
         // Calculate REAL score from actual materials!
@@ -638,8 +702,8 @@ async function addRatingsToProducts() {
       console.log('Could not scrape, using default score');
     }
 
-    // Create and add indicator with REAL score (combined UI)
-    const indicator = createRatingIndicator(score, productUrl, compositionData);
+    // Create and add indicator with REAL score and value score (combined UI)
+    const indicator = createRatingIndicator(score, productUrl, compositionData, price);
     imageContainer.appendChild(indicator);
 
     addedCount++;
