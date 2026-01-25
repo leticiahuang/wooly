@@ -164,8 +164,33 @@ function queueScrape(url) {
   });
 }
 
+// Backend URL for AI features
+const WOOLY_BACKEND = 'http://localhost:3000';
+
 // Handle messages from content scripts
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  
+  // Wooly AI Chat - calls backend
+  if (request.action === 'askWoolyAI') {
+    (async () => {
+      try {
+        const response = await fetch(`${WOOLY_BACKEND}/api/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            question: request.payload.question,
+            site: request.payload.site
+          })
+        });
+        const data = await response.json();
+        sendResponse({ success: data.success, answer: data.answer, error: data.error });
+      } catch (err) {
+        sendResponse({ success: false, error: 'Backend not reachable' });
+      }
+    })();
+    return true;
+  }
+
   if (request.action === 'scrapeComposition') {
     // Use the queue system
     queueScrape(request.url)
@@ -191,7 +216,95 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true; // Will respond asynchronously
   }
 
-  return false;
+  if (request.action === 'findAlternative') {
+    // Return a promise to keep channel open
+    chrome.storage.sync.get(['openaiApiKey'], async (data) => {
+      if (!data.openaiApiKey) {
+        sendResponse({ success: false, error: 'API Key missing' });
+        return;
+      }
+
+      try {
+        const { productName, materials } = request.payload;
+
+        const badMaterials = (materials || [])
+          .filter(m => ['polyester', 'acrylic', 'nylon', 'spandex', 'elastane'].includes(m.name?.toLowerCase()))
+          .map(m => m.name)
+          .join(', ');
+
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${data.openaiApiKey}`
+          },
+          body: JSON.stringify({
+            model: "gpt-3.5-turbo",
+            messages: [
+              {
+                role: "system",
+                content: "You are a sustainable fashion search assistant. You generate SHORT search queries (3-6 words) to find sustainable alternatives for synthetic clothing. Return ONLY the search query."
+              },
+              {
+                role: "user",
+                content: `Product: "${productName}"${badMaterials ? `\nBad materials to replace: ${badMaterials}` : ''}\n\nTask: Generate search query for sustainable alternative (e.g. organic cotton, wool, linen).`
+              }
+            ],
+            max_tokens: 20
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`OpenAI API Error: ${response.status}`);
+        }
+
+        const json = await response.json();
+        const query = json.choices[0].message.content.trim().replace(/^"|"$/g, '');
+
+        if (!query) {
+          throw new Error('No query generated');
+        }
+
+        // Generate URL
+        const encodedQuery = encodeURIComponent(query);
+        const site = request.payload.site;
+        let searchUrl;
+
+        switch (site) {
+          case 'zara.com':
+            searchUrl = `https://www.zara.com/us/en/search?searchTerm=${encodedQuery}`;
+            break;
+          case 'hm.com':
+            searchUrl = `https://www2.hm.com/en_us/search-results.html?q=${encodedQuery}`;
+            break;
+          case 'uniqlo.com':
+            searchUrl = `https://www.uniqlo.com/us/en/search?q=${encodedQuery}`;
+            break;
+          case 'asos.com':
+            searchUrl = `https://www.asos.com/us/search/?q=${encodedQuery}`;
+            break;
+          case 'amazon.com':
+            searchUrl = `https://www.amazon.com/s?k=${encodedQuery}`;
+            break;
+          default:
+            searchUrl = `https://www.google.com/search?tbm=shop&q=${encodedQuery}+sustainable`;
+        }
+
+        sendResponse({ success: true, searchUrl, query });
+
+      } catch (error) {
+        console.error('OpenAI Error:', error);
+        sendResponse({ success: false, error: error.message });
+      }
+    });
+    return true; // Keep channel open for async response
+  }
+
+  if (request.action === 'openOptionsPage') {
+    chrome.runtime.openOptionsPage();
+    return true;
+  }
+
   return false;
 });
 

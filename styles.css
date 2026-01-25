@@ -448,3 +448,312 @@
   opacity: 1;
   transform: translateY(0);
 }
+
+/* -------------------------------------------------------------------------
+   WOOLY SETTINGS MODAL
+   ------------------------------------------------------------------------- */
+.wooly-settings-modal {
+  position: fixed !important;
+  bottom: 110px !important;
+  right: 24px !important;
+  width: auto;
+  min-width: 80px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  z-index: 2147483646 !important;
+  opacity: 0;
+  transform: translateY(20px) scale(0.95);
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+.wooly-settings-modal.visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.wooly-settings-header {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 6px 10px;
+  background: #F8FAFC;
+  color: #334155;
+  border-radius: 16px 16px 0 0;
+  font-weight: 600;
+  font-size: 14px;
+  border-bottom: 1px solid #E2E8F0;
+}
+
+.wooly-settings-close {
+  background: none;
+  border: none;
+  color: #64748B;
+  font-size: 16px;
+  cursor: pointer;
+  opacity: 0.8;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+}
+
+.wooly-settings-close:hover {
+  opacity: 1;
+}
+
+.wooly-settings-body {
+  padding: 10px 12px;
+}
+
+.wooly-setting-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid #E2E8F0;
+  font-size: 14px;
+  color: #334155;
+}
+
+.wooly-setting-row:last-of-type {
+  border-bottom: none;
+}
+
+.wooly-setting-hint {
+  margin-top: 12px;
+  padding: 10px;
+  background: #F1F5F9;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #64748B;
+  text-align: center;
+}
+
+/* Toggle Switch */
+.wooly-toggle {
+  position: relative;
+  display: inline-block;
+  width: 32px;
+  height: 18px;
+}
+
+.wooly-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.wooly-toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #CBD5E1;
+  transition: 0.3s;
+  border-radius: 18px;
+}
+
+.wooly-toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 14px;
+  width: 14px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.wooly-toggle input:checked+.wooly-toggle-slider {
+  background-color: #4ADE80;
+}
+
+.wooly-toggle input:checked+.wooly-toggle-slider.wooly-slider-green {
+  background-color: #4ADE80;
+}
+
+.wooly-toggle input:checked+.wooly-toggle-slider.wooly-slider-yellow {
+  background-color: #FBBF24;
+}
+
+.wooly-toggle input:checked+.wooly-toggle-slider.wooly-slider-red {
+  background-color: #F87171;
+}
+
+.wooly-toggle input:checked+.wooly-toggle-slider:before {
+  transform: translateX(14px);
+}
+
+/* -------------------------------------------------------------------------
+   WOOLY AI CHAT
+   ------------------------------------------------------------------------- */
+.wooly-ai-modal {
+  position: fixed !important;
+  bottom: 110px !important;
+  right: 24px !important;
+  width: 300px;
+  max-height: 400px;
+  background: linear-gradient(180deg, #E0F2FE 0%, #BAE6FD 100%);
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  z-index: 2147483646 !important;
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  transform: translateY(20px) scale(0.95);
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  overflow: hidden;
+}
+
+/* Fluffy cloud decorations */
+.wooly-ai-modal::before,
+.wooly-ai-modal::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.6);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.wooly-ai-modal::before {
+  width: 80px;
+  height: 40px;
+  bottom: 60px;
+  left: -20px;
+  box-shadow:
+    25px -10px 0 10px rgba(255, 255, 255, 0.5),
+    50px 0 0 5px rgba(255, 255, 255, 0.4);
+}
+
+.wooly-ai-modal::after {
+  width: 60px;
+  height: 30px;
+  bottom: 120px;
+  right: -10px;
+  box-shadow:
+    -20px -8px 0 8px rgba(255, 255, 255, 0.5),
+    -40px 0 0 4px rgba(255, 255, 255, 0.4);
+}
+
+.wooly-ai-modal.visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.wooly-ai-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: white;
+  color: #334155;
+  border-radius: 16px 16px 0 0;
+  font-weight: 600;
+  font-size: 14px;
+  border-bottom: 1px solid #E2E8F0;
+  position: relative;
+  z-index: 1;
+}
+
+.wooly-ai-close {
+  background: none;
+  border: none;
+  color: #64748B;
+  font-size: 16px;
+  cursor: pointer;
+  opacity: 0.8;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+}
+
+.wooly-ai-close:hover {
+  opacity: 1;
+}
+
+.wooly-ai-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+
+.wooly-ai-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 280px;
+}
+
+.wooly-ai-message {
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.4;
+  max-width: 85%;
+}
+
+.wooly-ai-bot {
+  background: #F1F5F9;
+  color: #334155;
+  align-self: flex-start;
+  border-bottom-left-radius: 4px;
+}
+
+.wooly-ai-user {
+  background: #0EA5E9;
+  color: white;
+  align-self: flex-end;
+  border-bottom-right-radius: 4px;
+}
+
+.wooly-ai-input-row {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid #E2E8F0;
+}
+
+.wooly-ai-input {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  font-size: 13px;
+  outline: none;
+  font-family: inherit;
+}
+
+.wooly-ai-input:focus {
+  border-color: #0EA5E9;
+}
+
+.wooly-ai-send {
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: #0EA5E9;
+  color: white;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.wooly-ai-send:hover {
+  background: #0284C7;
+}

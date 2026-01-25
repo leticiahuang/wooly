@@ -168,19 +168,19 @@ function extractComposition(doc) {
 function extractAmazonFabricType(doc) {
     const rows = doc.querySelectorAll('.product-facts-detail');
     for (const row of rows) {
-      const labelEl = row.querySelector('.a-col-left .a-color-base');
-      const valueEl = row.querySelector('.a-col-right .a-color-base');
-      const label = labelEl?.textContent?.trim()?.toLowerCase();
-      const value = valueEl?.textContent?.trim();
-  
-      if (!label || !value) continue;
-  
-      if (label === 'fabric type' || label.includes('fabric')) {
-        return value; // e.g. "100% Cotton"
-      }
+        const labelEl = row.querySelector('.a-col-left .a-color-base');
+        const valueEl = row.querySelector('.a-col-right .a-color-base');
+        const label = labelEl?.textContent?.trim()?.toLowerCase();
+        const value = valueEl?.textContent?.trim();
+
+        if (!label || !value) continue;
+
+        if (label === 'fabric type' || label.includes('fabric')) {
+            return value; // e.g. "100% Cotton"
+        }
     }
     return null;
-  }
+}
 
 // Extract ALL sections with fabric data and return them for normalized processing
 // Each section is weighted equally (1/n where n = number of sections with fabric data)
@@ -310,6 +310,84 @@ function findEndOfFirstSection(text, startIndex) {
     return endIndex;
 }
 
+// Extract price from parsed HTML document
+function extractPrice(doc) {
+    // Price selectors in priority order - most specific first
+    const priceSelectors = [
+        // Zara-specific
+        '.money-amount__main',
+        '.price__amount-current .money-amount__main',
+        '.price-current__amount .money-amount__main',
+        '.product-detail-info__price .money-amount__main',
+        '[data-qa="product-price"] .money-amount__main',
+        '.price .money-amount',
+        '.money-amount',
+        // H&M-specific
+        '.ProductPrice-module--productItemPrice__3Rop2',
+        '[data-testid="productPrice"]',
+        '.product-item-price',
+        // Amazon-specific
+        '.a-price .a-offscreen',
+        '#priceblock_ourprice',
+        '#priceblock_dealprice',
+        '.a-price-whole',
+        // Generic
+        '[itemprop="price"]',
+        '.product-price',
+        '.current-price',
+        '.price-current',
+        '.sale-price',
+        '.final-price',
+        '[class*="price"]:not([class*="compare"]):not([class*="original"])',
+        '[data-price]'
+    ];
+
+    for (const selector of priceSelectors) {
+        try {
+            const elements = doc.querySelectorAll(selector);
+            for (const el of elements) {
+                let priceText = el.textContent || el.getAttribute('content') || el.getAttribute('data-price') || '';
+                priceText = priceText.trim();
+
+                // Skip empty or too long (probably not a price)
+                if (!priceText || priceText.length > 20) continue;
+
+                // Extract numeric value
+                // Remove currency symbols, whitespace, and parse
+                let clean = priceText.replace(/[^\d.,]/g, '');
+
+                // Handle different formats
+                if (clean.includes('.') && clean.includes(',')) {
+                    if (clean.indexOf('.') > clean.indexOf(',')) {
+                        // 1,234.56 - US format
+                        clean = clean.replace(/,/g, '');
+                    } else {
+                        // 1.234,56 - EU format
+                        clean = clean.replace(/\./g, '').replace(/,/g, '.');
+                    }
+                } else if (clean.includes(',')) {
+                    // Could be 1,234 (thousands) or 12,34 (decimal)
+                    if (clean.match(/,\d{2}$/)) {
+                        clean = clean.replace(/,/g, '.');
+                    } else {
+                        clean = clean.replace(/,/g, '');
+                    }
+                }
+
+                const price = parseFloat(clean);
+                if (!isNaN(price) && price > 0 && price < 10000) {
+                    console.log(`Extracted price: $${price} from selector: ${selector}`);
+                    return price;
+                }
+            }
+        } catch (e) {
+            continue;
+        }
+    }
+
+    return null;
+}
+
 // Fetch and parse a URL
 async function scrapeUrl(url) {
     try {
@@ -329,14 +407,17 @@ async function scrapeUrl(url) {
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, 'text/html');
 
+        // Extract price from the page
+        const price = extractPrice(doc);
+
         // 1) Amazon-specific: try to extract "Fabric type" from Product Details
         const hostname = new URL(url).hostname;
         if (hostname.includes('amazon.')) {
-        const fabricText = extractAmazonFabricType(doc);
-        if (fabricText) {
-            const materials = parseComposition(fabricText);
-            return { raw: fabricText, materials };
-        }
+            const fabricText = extractAmazonFabricType(doc);
+            if (fabricText) {
+                const materials = parseComposition(fabricText);
+                return { raw: fabricText, materials, price };
+            }
         }
 
         // 2) Generic fallback for other sites (and for Amazon if fabric not found)
@@ -395,10 +476,10 @@ async function scrapeUrl(url) {
             // Create raw text showing what sections were processed
             const rawText = compositionData.sections.map(s => `[${s.header || 'MAIN'}] ${s.text}`).join(' | ');
 
-            return { raw: rawText, materials, sectionCount: compositionData.count };
+            return { raw: rawText, materials, sectionCount: compositionData.count, price };
         }
 
-        return null;
+        return price ? { price } : null;
     }
 
     catch (error) {

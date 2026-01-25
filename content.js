@@ -21,18 +21,216 @@ function createMascotIcon() {
   // Tooltip
   const tooltip = document.createElement('div');
   tooltip.className = 'wooly-mascot-tooltip';
-  tooltip.textContent = '🧶 Wooly is active!';
+  tooltip.textContent = '🧶 Click: Settings | Double-click: AI Chat';
 
   container.appendChild(icon);
   container.appendChild(tooltip);
   document.body.appendChild(container);
 
-  // Optional: click to scroll to top or show info
-  container.addEventListener('click', () => {
-    tooltip.textContent = '✨ Checking fabric quality...';
-    setTimeout(() => {
-      tooltip.textContent = '🧶 Wooly is active!';
-    }, 2000);
+  // Create both modals (hidden by default)
+  createSettingsModal();
+  createAIChatModal();
+
+  // Click handling: single = settings, double = AI chat
+  let clickCount = 0;
+  let clickTimer = null;
+
+  icon.addEventListener('click', (e) => {
+    clickCount++;
+
+    if (clickCount === 1) {
+      // Wait to see if it's a double click
+      clickTimer = setTimeout(() => {
+        // Single click - toggle settings
+        const settingsModal = document.querySelector('.wooly-settings-modal');
+        const aiModal = document.querySelector('.wooly-ai-modal');
+        if (aiModal) aiModal.classList.remove('visible');
+        if (settingsModal) settingsModal.classList.toggle('visible');
+        clickCount = 0;
+      }, 250);
+    } else if (clickCount === 2) {
+      // Double click - open AI chat
+      clearTimeout(clickTimer);
+      const settingsModal = document.querySelector('.wooly-settings-modal');
+      const aiModal = document.querySelector('.wooly-ai-modal');
+      if (settingsModal) settingsModal.classList.remove('visible');
+      if (aiModal) aiModal.classList.toggle('visible');
+      clickCount = 0;
+    }
+  });
+}
+
+// Create Settings Modal (filter toggles by rating color)
+function createSettingsModal() {
+  if (document.querySelector('.wooly-settings-modal')) return;
+
+  const modal = document.createElement('div');
+  modal.className = 'wooly-settings-modal';
+
+  modal.innerHTML = `
+    <div class="wooly-settings-header">
+      <button class="wooly-settings-close">✕</button>
+    </div>
+    <div class="wooly-settings-body">
+      <div class="wooly-setting-row">
+        <label class="wooly-toggle">
+          <input type="checkbox" id="wooly-filter-green" checked>
+          <span class="wooly-toggle-slider wooly-slider-green"></span>
+        </label>
+      </div>
+      <div class="wooly-setting-row">
+        <label class="wooly-toggle">
+          <input type="checkbox" id="wooly-filter-yellow" checked>
+          <span class="wooly-toggle-slider wooly-slider-yellow"></span>
+        </label>
+      </div>
+      <div class="wooly-setting-row">
+        <label class="wooly-toggle">
+          <input type="checkbox" id="wooly-filter-red" checked>
+          <span class="wooly-toggle-slider wooly-slider-red"></span>
+        </label>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  // Load saved filter settings
+  chrome.storage.sync.get(['filterGreen', 'filterYellow', 'filterRed'], (data) => {
+    document.getElementById('wooly-filter-green').checked = data.filterGreen !== false;
+    document.getElementById('wooly-filter-yellow').checked = data.filterYellow !== false;
+    document.getElementById('wooly-filter-red').checked = data.filterRed !== false;
+  });
+
+  // Close button
+  modal.querySelector('.wooly-settings-close').addEventListener('click', () => {
+    modal.classList.remove('visible');
+  });
+
+  // Filter toggle handlers
+  document.getElementById('wooly-filter-green').addEventListener('change', (e) => {
+    chrome.storage.sync.set({ filterGreen: e.target.checked });
+    applyRatingFilters();
+  });
+
+  document.getElementById('wooly-filter-yellow').addEventListener('change', (e) => {
+    chrome.storage.sync.set({ filterYellow: e.target.checked });
+    applyRatingFilters();
+  });
+
+  document.getElementById('wooly-filter-red').addEventListener('change', (e) => {
+    chrome.storage.sync.set({ filterRed: e.target.checked });
+    applyRatingFilters();
+  });
+}
+
+// Apply rating filters to show/hide products
+function applyRatingFilters() {
+  chrome.storage.sync.get(['filterGreen', 'filterYellow', 'filterRed'], (data) => {
+    const showGreen = data.filterGreen !== false;
+    const showYellow = data.filterYellow !== false;
+    const showRed = data.filterRed !== false;
+
+    // Find all product cards with rating indicators
+    document.querySelectorAll('.fabric-rating-container').forEach(container => {
+      const button = container.querySelector('.fabric-rating-button');
+      if (!button) return;
+
+      // Find the parent product card
+      const productCard = container.closest('[data-wooly-processed="true"]') || container.parentElement;
+      if (!productCard) return;
+
+      // Determine rating color from button class
+      let shouldShow = true;
+      if (button.classList.contains('fabric-rating-darkGreen') || button.classList.contains('fabric-rating-lightGreen')) {
+        shouldShow = showGreen;
+      } else if (button.classList.contains('fabric-rating-medium')) {
+        shouldShow = showYellow;
+      } else if (button.classList.contains('fabric-rating-red')) {
+        shouldShow = showRed;
+      }
+
+      // Show/hide the product card
+      productCard.style.display = shouldShow ? '' : 'none';
+    });
+  });
+}
+
+// Create the AI Chat Modal
+function createAIChatModal() {
+  if (document.querySelector('.wooly-ai-modal')) return;
+
+  const modal = document.createElement('div');
+  modal.className = 'wooly-ai-modal';
+  modal.innerHTML = `
+    <div class="wooly-ai-header">
+      <span>Talk to Wooly</span>
+      <button class="wooly-ai-close">✕</button>
+    </div>
+    <div class="wooly-ai-body">
+      <div class="wooly-ai-messages">
+        <div class="wooly-ai-message wooly-ai-bot">
+          Hi! I'm Wooly. Paste a product name or describe what you're looking at, and I'll give you fabric advice!
+        </div>
+      </div>
+      <div class="wooly-ai-input-row">
+        <input type="text" class="wooly-ai-input" placeholder="e.g. Zara cotton blend t-shirt..." />
+        <button class="wooly-ai-send">→</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  // Close button
+  modal.querySelector('.wooly-ai-close').addEventListener('click', () => {
+    modal.classList.remove('visible');
+  });
+
+  // Send message
+  const input = modal.querySelector('.wooly-ai-input');
+  const sendBtn = modal.querySelector('.wooly-ai-send');
+  const messages = modal.querySelector('.wooly-ai-messages');
+
+  const sendMessage = async () => {
+    const text = input.value.trim();
+    if (!text) return;
+
+    // Add user message
+    const userMsg = document.createElement('div');
+    userMsg.className = 'wooly-ai-message wooly-ai-user';
+    userMsg.textContent = text;
+    messages.appendChild(userMsg);
+    input.value = '';
+
+    // Add loading message
+    const loadingMsg = document.createElement('div');
+    loadingMsg.className = 'wooly-ai-message wooly-ai-bot';
+    loadingMsg.textContent = '🤔 Thinking...';
+    messages.appendChild(loadingMsg);
+    messages.scrollTop = messages.scrollHeight;
+
+    try {
+      // Call backend via background script
+      const response = await chrome.runtime.sendMessage({
+        action: 'askWoolyAI',
+        payload: { question: text, site: window.location.hostname }
+      });
+
+      if (response && response.success) {
+        loadingMsg.textContent = response.answer;
+      } else {
+        loadingMsg.textContent = '😅 ' + (response?.error || 'Could not get a response. Is the backend running?');
+      }
+    } catch (err) {
+      loadingMsg.textContent = '❌ Error connecting. Make sure the backend is running on localhost:3000';
+    }
+    messages.scrollTop = messages.scrollHeight;
+  };
+
+  sendBtn.addEventListener('click', sendMessage);
+  input.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') sendMessage();
   });
 }
 
@@ -630,6 +828,62 @@ function createRatingIndicator(score, productUrl, compositionData, price) {
     hidePopup();
   });
 
+  // Click handler for "Find Sustainable Alternative" button
+  popup.addEventListener('click', async (e) => {
+    if (e.target.classList.contains('sheep-alternative-btn')) {
+      const btn = e.target;
+      const prodName = btn.dataset.productName || '';
+      let mats = [];
+      try {
+        mats = JSON.parse(btn.dataset.materials || '[]');
+      } catch (err) { /* ignore */ }
+
+      // Show loading state
+      btn.textContent = '🔍 Searching...';
+      btn.disabled = true;
+
+      try {
+        // Send message to background script (Serverless approach)
+        const response = await chrome.runtime.sendMessage({
+          action: 'findAlternative',
+          payload: {
+            productName: prodName,
+            materials: mats,
+            site: window.location.hostname
+          }
+        });
+
+        if (response && response.success) {
+          window.open(response.searchUrl, '_blank');
+          btn.textContent = '✅ Opened!';
+        } else {
+          throw new Error(response?.error || 'Unknown error');
+        }
+      } catch (error) {
+        console.error('Failed to get alternatives:', error);
+
+        if (error.message === 'API Key missing') {
+          // Open options page if key is missing
+          if (confirm('OpenAI API Key is missing. Open settings to add it?')) {
+            chrome.runtime.sendMessage({ action: 'openOptionsPage' });
+          }
+          btn.textContent = '🔑 Key Missing';
+        } else {
+          // Fallback: simple search on Google Shopping
+          const fallbackQuery = encodeURIComponent(prodName.split(' ').slice(0, 3).join(' ') + ' organic cotton');
+          window.open(`https://www.google.com/search?tbm=shop&q=${fallbackQuery}+sustainable`, '_blank');
+          btn.textContent = '✅ Opened!';
+        }
+      }
+
+      // Reset button after delay
+      setTimeout(() => {
+        btn.textContent = '🌿 Find Sustainable Alternative';
+        btn.disabled = false;
+      }, 2000);
+    }
+  });
+
   container.appendChild(button);
 
   return container;
@@ -723,12 +977,22 @@ async function addRatingsToProducts() {
 
     // Try a list of potential price selectors, prioritized
     const cardPriceSelectors = [
+      // Zara-specific
+      '.money-amount__main',
+      '.price__amount-current .money-amount__main',
+      '.product-price .money-amount',
+      '.money-amount',
+      // H&M-specific
+      '.ProductPrice-module--productItemPrice__3Rop2',
+      '[data-testid="productPrice"]',
+      '.product-item-price',
+      // Generic
       '[data-testid="price"]',
       '.product-price',
       '.current-price',
       '.price',
       '.amount',
-      '[class*="price"]',
+      '[class*="price"]:not([class*="compare"]):not([class*="original"])',
       '[data-price]'
     ];
 
