@@ -8,6 +8,9 @@ const compositionCache = new Map();
 let scrapeQueue = [];
 let isProcessing = false;
 
+// Hidden window for scraping
+let hiddenWindowId = null;
+
 // Listen for installation
 chrome.runtime.onInstalled.addListener(() => {
   console.log('Fabric Rating Extension installed');
@@ -22,20 +25,56 @@ function parseComposition(text) {
   if (!text) return null;
 
   const materials = [];
-  const percentPattern = /(\d+)%?\s*([a-zA-Z\s]+)|([a-zA-Z\s]+)\s*(\d+)%/gi;
+  const seen = new Set();
 
+  // Known material names to filter valid matches
+  const knownMaterials = [
+    'cotton', 'polyester', 'nylon', 'wool', 'silk', 'linen', 'hemp',
+    'viscose', 'rayon', 'modal', 'tencel', 'lyocell', 'spandex', 'elastane',
+    'acrylic', 'cashmere', 'leather', 'suede', 'denim', 'fleece', 'velvet',
+    'satin', 'chiffon', 'tweed', 'corduroy', 'jersey', 'organza', 'lace',
+    'recycled polyester', 'organic cotton', 'recycled cotton', 'bamboo'
+  ];
+
+  // Clean up the text
+  const cleanText = text.replace(/[\n\r\t]+/g, ' ').replace(/\s+/g, ' ');
+
+  // Pattern 1: "60% Cotton" or "60 % Cotton"
+  const pattern1 = /(\d+)\s*%\s*([a-zA-Z][a-zA-Z\s]{1,25})/gi;
   let match;
-  while ((match = percentPattern.exec(text)) !== null) {
-    const percentage = match[1] || match[4];
-    const material = (match[2] || match[3]).trim().toLowerCase();
-
-    if (percentage && material && material.length < 30) {
-      materials.push({
-        name: material,
-        percentage: parseInt(percentage)
-      });
+  while ((match = pattern1.exec(cleanText)) !== null) {
+    const percentage = parseInt(match[1]);
+    const material = match[2].trim().toLowerCase().replace(/[,\.\s]+$/, '');
+    const key = material.split(/\s+/)[0]; // First word for deduplication
+    
+    if (percentage > 0 && percentage <= 100 && !seen.has(key)) {
+      // Check if it's a known material or contains a known material
+      const isKnown = knownMaterials.some(m => material.includes(m) || m.includes(material.split(/\s+/)[0]));
+      if (isKnown || material.length <= 15) {
+        materials.push({ name: material, percentage });
+        seen.add(key);
+      }
     }
   }
+
+  // Pattern 2: "Cotton 60%" or "Cotton: 60%"
+  const pattern2 = /([a-zA-Z][a-zA-Z\s]{1,25})[:\s]+(\d+)\s*%/gi;
+  while ((match = pattern2.exec(cleanText)) !== null) {
+    const material = match[1].trim().toLowerCase().replace(/[,\.\s]+$/, '');
+    const percentage = parseInt(match[2]);
+    const key = material.split(/\s+/)[0];
+    
+    if (percentage > 0 && percentage <= 100 && !seen.has(key)) {
+      const isKnown = knownMaterials.some(m => material.includes(m) || m.includes(material.split(/\s+/)[0]));
+      if (isKnown || material.length <= 15) {
+        materials.push({ name: material, percentage });
+        seen.add(key);
+      }
+    }
+  }
+
+  // Sort by percentage (highest first)
+  materials.sort((a, b) => b.percentage - a.percentage);
 
   return materials.length > 0 ? materials : null;
 }
@@ -59,14 +98,37 @@ async function processQueue() {
   let tab = null;
 
   try {
-    // Create hidden tab
-    tab = await chrome.tabs.create({
-      url: url,
-      active: false,
-      index: 0 // Put it at the start so it's less noticeable
-    });
+    // Create or reuse a hidden minimized window for scraping
+    if (!hiddenWindowId) {
+      const hiddenWindow = await chrome.windows.create({
+        url: url,
+        state: 'minimized',
+        focused: false
+      });
+      hiddenWindowId = hiddenWindow.id;
+      tab = hiddenWindow.tabs[0];
+    } else {
+      // Check if hidden window still exists
+      try {
+        await chrome.windows.get(hiddenWindowId);
+        tab = await chrome.tabs.create({
+          url: url,
+          windowId: hiddenWindowId,
+          active: false
+        });
+      } catch (e) {
+        // Window was closed, create a new one
+        const hiddenWindow = await chrome.windows.create({
+          url: url,
+          state: 'minimized',
+          focused: false
+        });
+        hiddenWindowId = hiddenWindow.id;
+        tab = hiddenWindow.tabs[0];
+      }
+    }
 
-    console.log('Opened background tab:', tab.id, 'for:', url);
+    console.log('Opened hidden tab:', tab.id, 'for:', url);
 
     // Wait for page to load
     await new Promise((resolveWait, rejectWait) => {
@@ -151,6 +213,18 @@ async function processQueue() {
   }
 
   isProcessing = false;
+
+  // If queue is empty, close the hidden window after a delay
+  if (scrapeQueue.length === 0) {
+    setTimeout(async () => {
+      if (scrapeQueue.length === 0 && hiddenWindowId) {
+        try {
+          await chrome.windows.remove(hiddenWindowId);
+        } catch (e) { }
+        hiddenWindowId = null;
+      }
+    }, 5000);
+  }
 
   // Wait before processing next (rate limiting)
   setTimeout(() => processQueue(), 2000);

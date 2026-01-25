@@ -160,22 +160,56 @@ function parseComposition(text) {
   if (!text) return null;
 
   const materials = [];
+  const seen = new Set();
 
-  // Common patterns: "100% Cotton", "Cotton 100%", "50% Polyester, 50% Cotton"
-  const percentPattern = /(\d+)%?\s*([a-zA-Z\s]+)|([a-zA-Z\s]+)\s*(\d+)%/gi;
+  // Known material names to filter valid matches
+  const knownMaterials = [
+    'cotton', 'polyester', 'nylon', 'wool', 'silk', 'linen', 'hemp',
+    'viscose', 'rayon', 'modal', 'tencel', 'lyocell', 'spandex', 'elastane',
+    'acrylic', 'cashmere', 'leather', 'suede', 'denim', 'fleece', 'velvet',
+    'satin', 'chiffon', 'tweed', 'corduroy', 'jersey', 'organza', 'lace',
+    'recycled polyester', 'organic cotton', 'recycled cotton', 'bamboo'
+  ];
 
+  // Clean up the text
+  const cleanText = text.replace(/[\n\r\t]+/g, ' ').replace(/\s+/g, ' ');
+
+  // Pattern 1: "60% Cotton" or "60 % Cotton"
+  const pattern1 = /(\d+)\s*%\s*([a-zA-Z][a-zA-Z\s]{1,25})/gi;
   let match;
-  while ((match = percentPattern.exec(text)) !== null) {
-    const percentage = match[1] || match[4];
-    const material = (match[2] || match[3]).trim().toLowerCase();
-
-    if (percentage && material) {
-      materials.push({
-        name: material,
-        percentage: parseInt(percentage)
-      });
+  while ((match = pattern1.exec(cleanText)) !== null) {
+    const percentage = parseInt(match[1]);
+    const material = match[2].trim().toLowerCase().replace(/[,\.\s]+$/, '');
+    const key = material.split(/\s+/)[0]; // First word for deduplication
+    
+    if (percentage > 0 && percentage <= 100 && !seen.has(key)) {
+      // Check if it's a known material or contains a known material
+      const isKnown = knownMaterials.some(m => material.includes(m) || m.includes(material.split(/\s+/)[0]));
+      if (isKnown || material.length <= 15) {
+        materials.push({ name: material, percentage });
+        seen.add(key);
+      }
     }
   }
+
+  // Pattern 2: "Cotton 60%" or "Cotton: 60%"
+  const pattern2 = /([a-zA-Z][a-zA-Z\s]{1,25})[:\s]+(\d+)\s*%/gi;
+  while ((match = pattern2.exec(cleanText)) !== null) {
+    const material = match[1].trim().toLowerCase().replace(/[,\.\s]+$/, '');
+    const percentage = parseInt(match[2]);
+    const key = material.split(/\s+/)[0];
+    
+    if (percentage > 0 && percentage <= 100 && !seen.has(key)) {
+      const isKnown = knownMaterials.some(m => material.includes(m) || m.includes(material.split(/\s+/)[0]));
+      if (isKnown || material.length <= 15) {
+        materials.push({ name: material, percentage });
+        seen.add(key);
+      }
+    }
+  }
+
+  // Sort by percentage (highest first)
+  materials.sort((a, b) => b.percentage - a.percentage);
 
   return materials.length > 0 ? materials : null;
 }
@@ -246,23 +280,27 @@ async function scrapeComposition(productUrl) {
 
 // Generate fabric rows HTML from materials data
 function getFabricRowsHTML(materials) {
-  // Use real materials if available, otherwise fallback to placeholder
-  const fabric = materials || [
-    { name: "cotton", percentage: 60 },
-    { name: "polyester", percentage: 35 },
-    { name: "elastane", percentage: 5 },
-  ];
+  // If no materials data available, show a message
+  if (!materials || materials.length === 0) {
+    return `
+      <div class="sheep-fabric-row">
+        <div class="sheep-fabric-info">
+          <span class="sheep-fabric-name" style="font-style: italic; color: #888;">Composition data unavailable</span>
+        </div>
+      </div>
+    `;
+  }
 
-  return fabric
+  return materials
     .map(
       (f) => `
       <div class="sheep-fabric-row">
         <div class="sheep-fabric-info">
           <span class="sheep-fabric-name">${f.name.charAt(0).toUpperCase() + f.name.slice(1)}</span>
-          <span class="sheep-fabric-percent">${f.percentage || f.percent}%</span>
+          <span class="sheep-fabric-percent">${f.percentage}%</span>
         </div>
         <div class="sheep-fabric-bar-track">
-          <div class="sheep-fabric-bar-fill" style="width: ${f.percentage || f.percent}%"></div>
+          <div class="sheep-fabric-bar-fill" style="width: ${f.percentage}%"></div>
         </div>
       </div>
     `
