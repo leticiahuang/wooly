@@ -38,15 +38,10 @@
   padding: 6px 10px;
   font-weight: 600;
   letter-spacing: 0.2px;
-
   border: 1px solid rgba(0, 0, 0, 0.08);
-  /* restored border */
   background: white;
-  /* default fallback */
-
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
-
   transition: transform 120ms ease, box-shadow 120ms ease;
 }
 
@@ -60,19 +55,14 @@
 /* Red rating (0-40) - Poor */
 .fabric-rating-button.fabric-rating-red {
   background-color: #FCA5A5;
-  /* rich soft red */
   color: #7F1D1D;
-  /* deep red text */
   border-bottom: none;
-  /* remove new border */
 }
 
 /* Medium/Yellow rating (40-65) - Moderate */
 .fabric-rating-button.fabric-rating-medium {
   background-color: #ffe386;
-  /* muted gold */
   color: #7C4A00;
-  /* premium amber-brown text */
   border-bottom: none;
 }
 
@@ -90,8 +80,7 @@
   border-bottom: none;
 }
 
-/* Star decorations - ONLY for Excellent (darkGreen) */
-/* Keeping the stars as user seemed to like them generally, but restoring potential context */
+/* Star decorations for Excellent (darkGreen) rating - adds visual flair on hover */
 .fabric-rating-button.fabric-rating-darkGreen::before,
 .fabric-rating-button.fabric-rating-darkGreen::after {
   content: '✦';
@@ -108,14 +97,12 @@
 .fabric-rating-button.fabric-rating-darkGreen::before {
   top: -6px;
   right: -4px;
-  /* adjust back to original-ish */
 }
 
 /* Bottom Left Star */
 .fabric-rating-button.fabric-rating-darkGreen::after {
   bottom: -5px;
   left: -3px;
-  /* adjust back to original-ish */
   animation-delay: 1.5s;
 }
 
