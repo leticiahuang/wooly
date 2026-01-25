@@ -190,6 +190,121 @@ function applyRatingFilters() {
   });
 }
 
+// Extract page context for AI chatbot
+function extractPageContext() {
+  const context = {
+    url: window.location.href,
+    site: window.location.hostname,
+    pageTitle: document.title,
+    productName: null,
+    price: null,
+    materials: null
+  };
+
+  const hostname = window.location.hostname;
+
+  // Try to extract product name from various selectors
+  const productNameSelectors = [
+    'h1.product-detail-info__header-name', // Zara
+    'h1[data-qa-anchor="productName"]', // Zara alternate
+    '.product-detail-info__name', // Zara
+    'h1.ProductName-module', // H&M
+    'h1[class*="product-name"]',
+    'h1[class*="ProductName"]',
+    '#productTitle', // Amazon
+    '#title span', // Amazon alternate
+    'h1.product-title',
+    'h1[itemprop="name"]',
+    '.product-name h1',
+    'h1'
+  ];
+
+  for (const selector of productNameSelectors) {
+    const el = document.querySelector(selector);
+    if (el && el.textContent.trim()) {
+      context.productName = el.textContent.trim().substring(0, 200);
+      break;
+    }
+  }
+
+  // Try to extract price
+  const priceSelectors = [
+    '.money-amount__main', // Zara
+    '.money-amount._main', // Zara
+    '[data-qa="product-price"]', // Zara
+    '.ProductPrice-module', // H&M
+    '.price__value', // H&M
+    '#priceblock_ourprice', // Amazon
+    '#priceblock_dealprice', // Amazon
+    '.a-price .a-offscreen', // Amazon
+    '[class*="price"]',
+    '[itemprop="price"]',
+    '.product-price',
+    '.current-price'
+  ];
+
+  for (const selector of priceSelectors) {
+    const el = document.querySelector(selector);
+    if (el) {
+      const priceText = el.textContent || el.getAttribute('content') || '';
+      const priceMatch = priceText.match(/[\$€£¥]?\s*(\d+[.,]?\d*)/);
+      if (priceMatch) {
+        context.price = priceMatch[0].trim();
+        break;
+      }
+    }
+  }
+
+  // Try to extract materials/composition
+  const compositionSelectors = [
+    '.product-detail-info__composition', // Zara
+    '.product-detail-extra-info__composition-care', // Zara
+    '[class*="composition"]',
+    '[class*="material"]',
+    '#productDetails_techSpec_section_1', // Amazon
+    '#productDetails_detailBullets_sections1', // Amazon
+    '.product-description',
+    '[itemprop="material"]'
+  ];
+
+  for (const selector of compositionSelectors) {
+    const el = document.querySelector(selector);
+    if (el && el.textContent.trim()) {
+      const text = el.textContent.trim();
+      const parsed = parseComposition(text);
+      if (parsed && parsed.length > 0) {
+        context.materials = parsed;
+        break;
+      }
+    }
+  }
+
+  // Also check for any Wooly rating indicators on the page (we already scraped this data)
+  const woolyRatings = document.querySelectorAll('.fabric-rating-container');
+  if (woolyRatings.length > 0 && !context.materials) {
+    // Get materials from the first visible product popup if available
+    const popup = document.querySelector('.fabric-hover-popup');
+    if (popup) {
+      const fabricRows = popup.querySelectorAll('.sheep-fabric-row');
+      if (fabricRows.length > 0) {
+        context.materials = [];
+        fabricRows.forEach(row => {
+          const name = row.querySelector('.sheep-fabric-name')?.textContent;
+          const percent = row.querySelector('.sheep-fabric-percent')?.textContent;
+          if (name && percent) {
+            context.materials.push({
+              name: name.toLowerCase(),
+              percentage: parseInt(percent)
+            });
+          }
+        });
+      }
+    }
+  }
+
+  return context;
+}
+
 // Create the AI Chat Modal
 function createAIChatModal() {
   if (document.querySelector('.wooly-ai-modal')) return;
@@ -204,11 +319,11 @@ function createAIChatModal() {
     <div class="wooly-ai-body">
       <div class="wooly-ai-messages">
         <div class="wooly-ai-message wooly-ai-bot">
-          Hi! I'm Wooly. Paste a product name or describe what you're looking at, and I'll give you fabric advice!
+          Hi! I'm Wooly 🐑 I can see the page you're on! Ask me anything about the fabric, quality, or sustainability of products you're viewing.
         </div>
       </div>
       <div class="wooly-ai-input-row">
-        <input type="text" class="wooly-ai-input" placeholder="e.g. Zara cotton blend t-shirt..." />
+        <input type="text" class="wooly-ai-input" placeholder="Ask about this product..." />
         <button class="wooly-ai-send">→</button>
       </div>
     </div>
@@ -245,10 +360,17 @@ function createAIChatModal() {
     messages.scrollTop = messages.scrollHeight;
 
     try {
-      // Call backend via background script
+      // Extract current page context for the AI
+      const pageContext = extractPageContext();
+
+      // Call backend via background script with page context
       const response = await chrome.runtime.sendMessage({
         action: 'askWoolyAI',
-        payload: { question: text, site: window.location.hostname }
+        payload: {
+          question: text,
+          site: window.location.hostname,
+          pageContext: pageContext
+        }
       });
 
       if (response && response.success) {

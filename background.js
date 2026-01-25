@@ -169,7 +169,7 @@ const WOOLY_BACKEND = 'http://localhost:3000';
 
 // Handle messages from content scripts
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  
+
   // Wooly AI Chat - calls backend
   if (request.action === 'askWoolyAI') {
     (async () => {
@@ -179,7 +179,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             question: request.payload.question,
-            site: request.payload.site
+            site: request.payload.site,
+            pageContext: request.payload.pageContext
           })
         });
         const data = await response.json();

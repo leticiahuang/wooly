@@ -32,9 +32,9 @@ app.post('/api/recommendations', async (req, res) => {
 
     // Validate input
     if (!productName) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Product name is required' 
+      return res.status(400).json({
+        success: false,
+        error: 'Product name is required'
       });
     }
 
@@ -105,7 +105,7 @@ Be friendly, concise, and practical. Use emojis sparingly.`;
     // Build search URL based on site
     let searchUrl;
     const encodedQuery = encodeURIComponent(searchQuery);
-    
+
     switch (site) {
       case 'zara.com':
         searchUrl = `https://www.zara.com/us/en/search?searchTerm=${encodedQuery}`;
@@ -135,7 +135,7 @@ Be friendly, concise, and practical. Use emojis sparingly.`;
 
   } catch (error) {
     console.error('API Error:', error);
-    
+
     // Handle specific OpenAI errors
     if (error.code === 'invalid_api_key') {
       return res.status(500).json({
@@ -168,10 +168,36 @@ Be friendly, concise, and practical. Use emojis sparingly.`;
 // Simple AI Chat endpoint
 app.post('/api/chat', async (req, res) => {
   try {
-    const { question, site } = req.body;
+    const { question, site, pageContext } = req.body;
 
     if (!question) {
       return res.status(400).json({ success: false, error: 'Question is required' });
+    }
+
+    // Build context string from page data
+    let contextInfo = '';
+    if (pageContext) {
+      const parts = [];
+
+      if (pageContext.productName) {
+        parts.push(`Product: "${pageContext.productName}"`);
+      }
+      if (pageContext.price) {
+        parts.push(`Price: ${pageContext.price}`);
+      }
+      if (pageContext.materials && pageContext.materials.length > 0) {
+        const materialsList = pageContext.materials
+          .map(m => `${m.percentage}% ${m.name}`)
+          .join(', ');
+        parts.push(`Materials: ${materialsList}`);
+      }
+      if (pageContext.site) {
+        parts.push(`Site: ${pageContext.site}`);
+      }
+
+      if (parts.length > 0) {
+        contextInfo = `\n\n[Current page context]\n${parts.join('\n')}`;
+      }
     }
 
     const completion = await openai.chat.completions.create({
@@ -179,11 +205,11 @@ app.post('/api/chat', async (req, res) => {
       messages: [
         {
           role: 'system',
-          content: `You are Wooly, a friendly sheep mascot who is an expert on fabric quality and sustainable fashion. Keep answers brief (2-3 sentences max). Help users understand fabric composition, quality, and sustainability. If they mention a product, give quick advice on fabric quality.`
+          content: `You are Wooly, a friendly sheep mascot who is an expert on fabric quality and sustainable fashion. You can see the product the user is currently viewing on their screen. Use this context to give specific, helpful advice about the fabric quality, sustainability, and value. Keep answers brief (2-3 sentences max) but reference the specific product details when relevant.`
         },
-        { role: 'user', content: question }
+        { role: 'user', content: question + contextInfo }
       ],
-      max_tokens: 150,
+      max_tokens: 200,
       temperature: 0.7
     });
 
@@ -192,11 +218,11 @@ app.post('/api/chat', async (req, res) => {
 
   } catch (error) {
     console.error('Chat API Error:', error.message);
-    
+
     if (error.code === 'insufficient_quota') {
       return res.json({ success: false, error: 'OpenAI quota exceeded. Add credits to your account.' });
     }
-    
+
     res.json({ success: false, error: 'Could not get response from AI.' });
   }
 });
@@ -205,7 +231,7 @@ app.post('/api/chat', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`🐑 Wooly backend running on http://localhost:${PORT}`);
   console.log(`   Health check: http://localhost:${PORT}/health`);
-  
+
   if (!process.env.OPENAI_API_KEY) {
     console.warn('⚠️  WARNING: OPENAI_API_KEY not set in .env file!');
   }
