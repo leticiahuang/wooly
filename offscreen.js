@@ -83,8 +83,7 @@ function extractComposition(doc) {
         '.product-detail-extra-info__composition',
         '.expandable-text__inner-content',
         '[class*="composition"]',
-        '[class*="material"]',
-        '[class*="fabric"]'
+        '[class*="material"]'
     ];
 
     for (const selector of selectors) {
@@ -99,6 +98,23 @@ function extractComposition(doc) {
 
     return null;
 }
+
+function extractAmazonFabricType(doc) {
+    const rows = doc.querySelectorAll('.product-facts-detail');
+    for (const row of rows) {
+      const labelEl = row.querySelector('.a-col-left .a-color-base');
+      const valueEl = row.querySelector('.a-col-right .a-color-base');
+      const label = labelEl?.textContent?.trim()?.toLowerCase();
+      const value = valueEl?.textContent?.trim();
+  
+      if (!label || !value) continue;
+  
+      if (label === 'fabric type' || label.includes('fabric')) {
+        return value; // e.g. "100% Cotton"
+      }
+    }
+    return null;
+  }
 
 // Fetch and parse a URL
 async function scrapeUrl(url) {
@@ -119,15 +135,28 @@ async function scrapeUrl(url) {
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, 'text/html');
 
+        // 1) Amazon-specific: try to extract "Fabric type" from Product Details
+        const hostname = new URL(url).hostname;
+        if (hostname.includes('amazon.')) {
+        const fabricText = extractAmazonFabricType(doc);
+        if (fabricText) {
+            const materials = parseComposition(fabricText);
+            return { raw: fabricText, materials };
+        }
+        }
+
+        // 2) Generic fallback for other sites (and for Amazon if fabric not found)
         const compositionText = extractComposition(doc);
 
         if (compositionText) {
-            const materials = parseComposition(compositionText);
-            return { raw: compositionText, materials };
+        const materials = parseComposition(compositionText);
+        return { raw: compositionText, materials };
         }
 
         return null;
-    } catch (error) {
+    }
+
+    catch (error) {
         console.error('Offscreen scrape error:', error);
         return null;
     }

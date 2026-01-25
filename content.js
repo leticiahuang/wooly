@@ -61,7 +61,13 @@ const SITE_CONFIGS = {
     imageContainer: 'a[data-auto-id="productTileImage"]',
     productLink: 'a[data-auto-id="productTileLink"]',
     compositionSelector: '[class*="about-me"], [class*="composition"]',
-  }
+  },
+  'amazon.com': {
+  productCards: '[data-component-type="s-search-result"]',
+  productLink: 'h2 a.a-link-normal',
+  imageContainer: 'img.s-image',
+  compositionSelector: '#productDetails_techSpec_section_1, #productDetails_detailBullets_sections1, #detailBullets_feature_div'
+}
 };
 
 // Get current site config
@@ -70,7 +76,7 @@ function getSiteConfig() {
   for (const [site, config] of Object.entries(SITE_CONFIGS)) {
     if (hostname.includes(site)) return config;
   }
-  // Default fallback
+  // Default fallback (if you are not in site config)
   return {
     productCards: 'article, .product, .product-card, [class*="product"]',
     imageContainer: 'img, a, .image',
@@ -261,12 +267,46 @@ async function scrapeZaraComposition(productUrl) {
   }
 }
 
+//Scrape composition from Amazon product page (from Victoia)
+async function scrapeAmazonComposition(productUrl) {
+  try {
+    console.log('Requesting composition scrape for:', productUrl);
+
+    // Send message to background script to open the page and scrape
+    return new Promise((resolve) => {
+      chrome.runtime.sendMessage(
+        { action: 'scrapeComposition', url: productUrl },
+        (response) => {
+          if (chrome.runtime.lastError) {
+            console.error('sendMessage error:', chrome.runtime.lastError);
+            resolve(null);
+            return;
+          }
+          if (response && response.success) {
+            resolve(response.data);
+          } else {
+            console.error('Failed to scrape:', response?.error);
+            resolve(null);
+          }
+        }
+      );
+    });
+  } catch (error) {
+    console.error('Error scraping composition:', error);
+    return null;
+  }
+}
+
 // Scrape composition from any product page (from diego)
 async function scrapeComposition(productUrl) {
   const hostname = window.location.hostname;
 
-  if (hostname.includes('zara.com')) {
+  if (hostname.includes('zara')) {
     return await scrapeZaraComposition(productUrl);
+  }
+
+  if (hostname.includes('amazon')) {
+    return await scrapeAmazonComposition(productUrl);
   }
 
   // Generic scraping for other sites
