@@ -165,6 +165,39 @@ function extractComposition(doc) {
     return null;
 }
 
+function extractHmMaterialsAccordion(doc) {
+    // 1) Find the toggle button (stable id)
+    const btn =
+      doc.querySelector('#toggle-materialsAndSuppliersAccordion') ||
+      [...doc.querySelectorAll('button')].find(b =>
+        (b.textContent || '').trim().toLowerCase() === 'materials'
+      );
+  
+    if (!btn) return null;
+  
+    // 2) Find the controlled section
+    const sectionId = btn.getAttribute('aria-controls');
+    const section = sectionId ? doc.getElementById(sectionId) : null;
+  
+    // Fallback: sometimes content is nearby in DOM
+    const container = section || btn.closest('div, section') || btn.parentElement;
+    if (!container) return null;
+  
+    // 3) Extract text from the container/section
+    const text = (container.textContent || '').replace(/\s+/g, ' ').trim();
+  
+    // We only want material-ish text (must contain % + fabric names)
+    if (
+      text.includes('%') &&
+      /cotton|polyester|viscose|wool|linen|silk|elastane|polyamide|nylon|acrylic/i.test(text)
+    ) {
+      return text;
+    }
+  
+    return null;
+  }
+  
+
 function extractAmazonFabricType(doc) {
     const rows = doc.querySelectorAll('.product-facts-detail');
     for (const row of rows) {
@@ -328,9 +361,9 @@ async function scrapeUrl(url) {
         const html = await response.text();
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, 'text/html');
+        const hostname = new URL(url).hostname;
 
         // 1) Amazon-specific: try to extract "Fabric type" from Product Details
-        const hostname = new URL(url).hostname;
         if (hostname.includes('amazon.')) {
         const fabricText = extractAmazonFabricType(doc);
         if (fabricText) {
@@ -339,7 +372,16 @@ async function scrapeUrl(url) {
         }
         }
 
-        // 2) Generic fallback for other sites (and for Amazon if fabric not found)
+        // 2 H&M specific: Materials accordion
+        if (hostname.includes('hm.com')) {
+        const hmText = extractHmMaterialsAccordion(doc);
+        if (hmText) {
+            const materials = parseComposition(hmText);
+            return { raw: hmText, materials };
+        }
+        }
+
+        // 3) Generic fallback for other sites (and for Amazon if fabric not found)
         const compositionData = extractComposition(doc);
 
         if (compositionData && compositionData.sections && compositionData.sections.length > 0) {

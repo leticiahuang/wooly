@@ -44,11 +44,24 @@ const SITE_CONFIGS = {
     productLink: 'a.product-link',
     compositionSelector: '.product-detail-info__composition, .product-detail-extra-info__composition-care',
   },
+  'aritzia.com': {
+  productCards: '[data-componentname="ProductGrid"] [data-testid^="plp-product-tile-"]',
+  productLink: 'a[href*="/product/"], a[href*="/en/product/"]',
+  imageContainer: '[data-testid="plp-product-image"]',
+  // PDP only; for PLP you won’t find composition here
+  compositionSelector: '[data-testid*="composition"], [data-testid*="material"], [class*="composition"], [class*="material"]'
+},
+'aritzia.ca': {
+  productCards: '[data-componentname="ProductGrid"] [data-testid^="plp-product-tile-"]',
+  productLink: 'a[href*="/product/"], a[href*="/en/product/"]',
+  imageContainer: '[data-testid="plp-product-image"]',
+  compositionSelector: '[data-testid*="composition"], [data-testid*="material"], [class*="composition"], [class*="material"]'
+},
   'hm.com': {
-    productCards: '.product-item, article[class*="product"]',
-    imageContainer: '.item-image, .image-container',
-    productLink: 'a[href*="/productpage"]',
-    compositionSelector: '[class*="composition"], [class*="material"]',
+  productCards: 'article',
+  productLink: 'a[href*="productpage"]',
+  imageContainer: 'img', // keep it dead simple
+  compositionSelector: '[class*="composition"], [class*="material"]',
   },
   'uniqlo.com': {
     productCards: '.fr-product-tile, .productTile',
@@ -456,7 +469,7 @@ function createRatingIndicator(score, productUrl, compositionData, price) {
   // Create container for button and popup
   const container = document.createElement('div');
   container.className = 'fabric-rating-container';
-  container.style.cssText = 'position: absolute !important; bottom: 12px !important; right: 12px !important; z-index: 1000 !important; left: auto !important;';
+  container.style.cssText = 'position: absolute !important; bottom: 12px !important; right: 12px !important; z-index: 2147483647 !important;';
 
   // Create the button (pill-shaped from rectangle-popup)
   const button = document.createElement('div');
@@ -776,7 +789,15 @@ async function addRatingsToProducts() {
 
     // Create and add indicator with REAL score and value score (combined UI)
     const indicator = createRatingIndicator(score, productUrl, compositionData, price);
-    imageContainer.appendChild(indicator);
+    // append to card to avoid picture/img wrappers that clip overlays
+    const target = card;
+
+    // ensure positioning context
+    const pos = window.getComputedStyle(target).position;
+    if (pos === 'static') target.style.position = 'relative';
+
+    target.appendChild(indicator);
+
 
     addedCount++;
   }
